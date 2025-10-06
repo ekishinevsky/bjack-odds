@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="color-scheme" content="dark" />
-  <title>Blackjack Odds — Eli Kishinevsky</title>
-  <meta name="description" content="Minimal blackjack helper: click your hand & seen cards to see bust chance on next hit and the odds of each next card." />
+  <title>Probability Tools — Eli Kishinevsky</title>
+  <meta name="description" content="A set of minimal, useful probability calculators: blackjack odds, dice sums, card draws, parlays, and gambler's ruin." />
 
   <!-- GA4 (optional) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-BWPMBYVSD5"></script>
@@ -20,63 +20,37 @@
     :root{
       --bg:#0b0b0f; --card:#121217; --text:#f2f3f5; --muted:#a6a8ad;
       --accent:#5b8cff; --border:#22242b; --radius:14px;
-      --danger:#ff7a7a; --good:#7aff9a;
     }
     *{box-sizing:border-box}
     html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:16px/1.55 Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
     a{color:var(--accent);text-decoration:none}
-    .container{max-width:980px;margin:0 auto;padding:22px}
+    .container{max-width:1080px;margin:0 auto;padding:22px}
     .nav{position:sticky;top:0;background:linear-gradient(180deg,#0b0b0f,#0b0b0fd0);backdrop-filter:saturate(130%) blur(6px);border-bottom:1px solid var(--border);z-index:5}
     .nav-inner{display:flex;justify-content:space-between;align-items:center;gap:14px}
     .brand{display:flex;align-items:center;gap:10px;color:var(--text);font-weight:800;text-decoration:none}
     .dot{width:10px;height:10px;border-radius:999px;background:linear-gradient(135deg,var(--accent),#8ea8ff);box-shadow:0 0 14px rgba(91,140,255,.66)}
     nav a{color:var(--muted);margin-left:14px}
-    nav a.active, nav a:hover{color:var(--text)}
+    nav a:hover{color:var(--text)}
     h1,h2,h3{margin:0 0 8px}
-    .section{padding:24px 0}
-    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
-    .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:8px 0 16px}
-    .select,.btn{border:1px solid var(--border);background:linear-gradient(180deg,#121217,#0c0c10);color:var(--text);border-radius:10px;padding:8px 10px}
-    .btn{cursor:pointer}
+    .hero{padding:28px 0 10px}
     .muted{color:var(--muted)}
-    .muted-sm{color:var(--muted);font-size:12px}
-    .grid-steps{display:grid;grid-template-columns:1fr;gap:14px}
-    @media(min-width:880px){ .grid-steps{grid-template-columns:1fr 1fr;} }
-
-    /* Step headers */
-    .step-title{display:flex;align-items:center;gap:10px;margin-bottom:8px}
-    .step-badge{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;border-radius:999px;background:var(--accent);color:#0b0b0f;font-weight:800;font-size:12px}
-
-    /* Pills (picked/seen) */
-    .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border:1px solid var(--border);border-radius:999px;margin:4px 6px 0 0;background:#121217}
-    .pill .x{cursor:pointer;font-weight:700;opacity:.9}
-
-    /* Rank pickers */
-    .rank-grid{display:grid;grid-template-columns:repeat(13, minmax(34px,1fr));gap:8px}
-    .rank-btn{
-      border:1px solid var(--border);background:#121217;border-radius:10px;padding:10px 0;text-align:center;cursor:pointer;user-select:none;
-      font-weight:700;
+    .grid{display:grid;gap:14px}
+    @media(min-width:780px){ .grid{grid-template-columns:repeat(3,1fr)} }
+    .card{
+      background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;justify-content:space-between;
+      transition:transform .08s ease, border-color .12s ease;
     }
-    .rank-btn:hover{border-color:var(--accent)}
-    .rank-btn:active{transform:translateY(1px)}
-
-    /* Headline stat */
-    .headline{
-      display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;
-      background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px;
+    .card:hover{transform:translateY(-1px);border-color:var(--accent)}
+    .card h3{margin-bottom:6px}
+    .card p{margin:0 0 12px}
+    .pill{
+      display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:999px;background:#101015;
+      width:max-content
     }
-    .big{font-size:34px;font-weight:900;letter-spacing:.3px}
-    .danger{color:var(--danger)} .good{color:var(--good)}
-    .substats{display:flex;gap:16px;flex-wrap:wrap;font-size:14px}
-    .substats .box{border:1px solid var(--border);border-radius:10px;padding:8px 10px;background:#101015}
-
-    /* Table */
-    .table{width:100%;border-collapse:collapse}
-    .table th,.table td{padding:10px;border-bottom:1px solid var(--border);text-align:left}
-    .table th{color:var(--muted);font-weight:600}
-    .table .num{text-align:right}
-    .row-bust{background:rgba(255,122,122,0.07)}
-    .cap{font-variant:all-small-caps;letter-spacing:.5px;color:var(--muted)}
+    .go{
+      display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:10px;padding:8px 10px;background:#101015
+    }
+    .go svg{width:16px;height:16px}
     footer{border-top:1px solid var(--border);margin-top:24px}
   </style>
 </head>
@@ -84,81 +58,96 @@
   <!-- NAV -->
   <div class="nav">
     <div class="container nav-inner">
-      <a class="brand" href="#"><span class="dot"></span><span>Blackjack Odds</span></a>
+      <a class="brand" href="#"><span class="dot"></span><span>Probability Tools</span></a>
       <nav>
-        <a class="active" href="#">Home</a>
         <a href="https://ekishinevsky.github.io/" target="_blank" rel="noopener">Main Site</a>
       </nav>
     </div>
   </div>
 
-  <section class="section">
+  <section class="hero">
     <div class="container">
-      <h2>Blackjack Odds</h2>
-      <p class="muted">Click your cards, then mark cards you’ve seen. Stats update live for the <strong>next hit</strong>.</p>
+      <h1>Probability Tools</h1>
+      <p class="muted">Minimal, fast, and practical calculators for cards, dice, and decision-making.</p>
+    </div>
+  </section>
 
-      <div class="controls">
-        <label>Decks:
-          <select id="decks" class="select">
-            <option>1</option><option>2</option><option selected>4</option><option>6</option><option>8</option>
-          </select>
-        </label>
-        <button class="btn" id="resetDeck">Reset deck</button>
-        <button class="btn" id="clearHand">Clear hand</button>
-        <button class="btn" id="clearSeen">Clear seen</button>
-        <span class="muted-sm">A = Ace (1 or 11); 10/J/Q/K are each their own card.</span>
-      </div>
-
-      <!-- Steps -->
-      <div class="grid-steps">
-        <!-- Step 1: Your Hand -->
-        <div class="card">
-          <div class="step-title"><span class="step-badge">1</span><h3>Your Hand</h3></div>
-          <div id="handPills"></div>
-          <div class="muted-sm" id="handInfo" style="margin:6px 0 10px"></div>
-          <div class="rank-grid" id="handRanks" aria-label="Add card to your hand"></div>
+  <section>
+    <div class="container grid">
+      <!-- Blackjack Odds -->
+      <article class="card">
+        <div>
+          <h3>Blackjack Odds</h3>
+          <p>Click your hand + seen cards to get <strong>bust chance on next hit</strong> and per-card draw odds.</p>
+          <span class="pill">Cards • Next-card odds</span>
         </div>
+        <a class="go" href="blackjack.html">
+          Open
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 3h7v7"></path><path d="M10 14L21 3"></path><path d="M21 14v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"></path>
+          </svg>
+        </a>
+      </article>
 
-        <!-- Step 2: Seen Cards -->
-        <div class="card">
-          <div class="step-title"><span class="step-badge">2</span><h3>Seen Cards (not in hand)</h3></div>
-          <div id="seenPills"></div>
-          <div class="muted-sm" style="margin:6px 0 10px">Click any ranks you see on the table (dealer upcard, other players, discards).</div>
-          <div class="rank-grid" id="seenRanks" aria-label="Mark card as seen"></div>
+      <!-- Dice Sum Odds -->
+      <article class="card">
+        <div>
+          <h3>Dice Sum Odds</h3>
+          <p>Pick dice & sides. See the <strong>distribution of sums</strong> and P(sum ≥ k) instantly.</p>
+          <span class="pill">Convolution • Exact</span>
         </div>
-      </div>
+        <a class="go" href="dice-sum-odds.html">
+          Open
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 3h7v7"></path><path d="M10 14L21 3"></path><path d="M21 14v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"></path>
+          </svg>
+        </a>
+      </article>
 
-      <!-- Stats -->
-      <div class="section">
-        <div class="headline">
-          <div>
-            <div class="cap">Bust chance if you HIT now</div>
-            <div id="bustProbBig" class="big danger">—</div>
-          </div>
-          <div class="substats">
-            <div class="box"><span class="cap">Busting cards left</span><div id="bustCount">—</div></div>
-            <div class="box"><span class="cap">Safe cards left</span><div id="safeCount">—</div></div>
-            <div class="box"><span class="cap">Safe chance</span><div id="safeProb" class="good">—</div></div>
-          </div>
+      <!-- Card Draw Odds (Hypergeometric) -->
+      <article class="card">
+        <div>
+          <h3>Card Draw Odds</h3>
+          <p>Hypergeometric: from a deck with K target cards, what's P(get ≥ x) in n draws?</p>
+          <span class="pill">Hypergeometric • Exact</span>
         </div>
-        <div class="muted-sm" style="margin-top:6px">These are <strong>next-card</strong> odds based on the remaining deck.</div>
-      </div>
+        <a class="go" href="card-draw-odds.html">
+          Open
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 3h7v7"></path><path d="M10 14L21 3"></path><path d="M21 14v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"></path>
+          </svg>
+        </a>
+      </article>
 
-      <!-- Deck composition -->
-      <div class="section card">
-        <h3>Remaining Deck</h3>
-        <table class="table" id="deckTable">
-          <thead>
-            <tr>
-              <th>Card</th>
-              <th class="num">Left</th>
-              <th class="num">Chance (next card)</th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-        <div class="muted" id="remainingTotal" style="margin-top:8px"></div>
-      </div>
+      <!-- Parlay / Accumulator EV -->
+      <article class="card">
+        <div>
+          <h3>Parlay / Accumulator EV</h3>
+          <p>Enter leg probabilities or odds to see <strong>payout & expected value</strong> of the parlay.</p>
+          <span class="pill">EV • Risk of bust</span>
+        </div>
+        <a class="go" href="parlay-ev.html">
+          Open
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 3h7v7"></path><path d="M10 14L21 3"></path><path d="M21 14v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"></path>
+          </svg>
+        </a>
+      </article>
+
+      <!-- Gambler's Ruin -->
+      <article class="card">
+        <div>
+          <h3>Gambler’s Ruin</h3>
+          <p>Given win prob, bankroll, bet size & goal, compute <strong>P(ruin)</strong> and expected hands.</p>
+          <span class="pill">Ruin probability</span>
+        </div>
+        <a class="go" href="gamblers-ruin.html">
+          Open
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+            <path d="M14 3h7v7"></path><path d="M10 14L21 3"></path><path d="M21 14v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"></path>
+          </svg>
+        </a>
+      </article>
     </div>
   </section>
 
@@ -170,155 +159,6 @@
 
   <script>
     document.getElementById('year').textContent=new Date().getFullYear();
-
-    const RANKS = ['A','2','3','4','5','6','7','8','9','T','J','Q','K'];
-    const LABEL = r => r==='T' ? '10' : r; // Show '10' instead of 'T' for clarity
-    function cardValues(rank){ return rank==='A' ? [1,11] : (['T','J','Q','K'].includes(rank) ? [10] : [parseInt(rank,10)]); }
-
-    const hand = [];   // player's hand ranks
-    const seen = [];   // seen cards not in hand
-    let deckCounts = {};
-    let decks = 4;
-
-    // Init / Reset
-    function initDeck(nDecks){
-      decks = parseInt(nDecks,10);
-      deckCounts = {};
-      RANKS.forEach(r => deckCounts[r] = 4 * decks); // 4 of each rank per deck
-      hand.length = 0; seen.length = 0;
-      renderAll();
-    }
-    function totalCardsLeft(){ return RANKS.reduce((s,r)=>s+deckCounts[r],0); }
-
-    // Mutations
-    function addCardToHand(rank){
-      if(deckCounts[rank] <= 0) return;
-      deckCounts[rank]--; hand.push(rank); renderAll();
-    }
-    function addSeenCard(rank){
-      if(deckCounts[rank] <= 0) return;
-      deckCounts[rank]--; seen.push(rank); renderAll();
-    }
-    function removeFromHand(i){ const r=hand[i]; hand.splice(i,1); deckCounts[r]++; renderAll(); }
-    function removeFromSeen(i){ const r=seen[i]; seen.splice(i,1); deckCounts[r]++; renderAll(); }
-    function clearHand(){ while(hand.length) removeFromHand(0); }
-    function clearSeen(){ while(seen.length) removeFromSeen(0); }
-    function resetDeck(){ initDeck(decks); }
-
-    // Hand total (best: treat aces as 11 if possible)
-    function bestHandTotal(cards){
-      let total = 0, aces = 0;
-      for(const r of cards){ if(r==='A') aces++; else total += cardValues(r)[0]; }
-      for(let i=0;i<aces;i++){
-        if(total + 11 <= 21 - (aces-1 - i)) total += 11; else total += 1;
-      }
-      const soft = aces>0 && total<=21 && (total - aces + 11 + (aces-1) <= 21);
-      return { total, soft };
-    }
-
-    // Outcome of hitting one more card of rank r
-    function outcomeIfHit(rank){
-      const newHand = hand.slice(); newHand.push(rank);
-      const { total } = bestHandTotal(newHand);
-      return (total>21) ? 'bust' : 'safe';
-    }
-
-    // Aggregate probabilities for next card
-    function computeHitSummary(){
-      const remaining = totalCardsLeft();
-      let bustN = 0, safeN = 0;
-
-      for(const r of RANKS){
-        const cnt = deckCounts[r]; if(cnt<=0) continue;
-        outcomeIfHit(r) === 'bust' ? bustN += cnt : safeN += cnt;
-      }
-      const bustP = remaining ? bustN/remaining : 0;
-      const safeP = 1 - bustP;
-      return { remaining, bustN, safeN, bustP, safeP };
-    }
-
-    // Renderers
-    function renderHand(){
-      const pills = document.getElementById('handPills'); pills.innerHTML='';
-      hand.forEach((r,i)=>{
-        const el = document.createElement('span'); el.className='pill';
-        el.innerHTML = `<strong>${LABEL(r)}</strong> <span class="x" title="Remove" role="button">&times;</span>`;
-        el.querySelector('.x').onclick = ()=>removeFromHand(i); pills.appendChild(el);
-      });
-      const info = document.getElementById('handInfo');
-      const { total, soft } = bestHandTotal(hand);
-      info.textContent = hand.length ? `Hand total: ${total} ${soft ? '(soft)' : '(hard)'}` : 'Click card ranks below to add your hand.';
-    }
-
-    function renderSeen(){
-      const pills = document.getElementById('seenPills'); pills.innerHTML='';
-      seen.forEach((r,i)=>{
-        const el = document.createElement('span'); el.className='pill';
-        el.innerHTML = `<strong>${LABEL(r)}</strong> <span class="x" title="Undo" role="button">&times;</span>`;
-        el.querySelector('.x').onclick = ()=>removeFromSeen(i); pills.appendChild(el);
-      });
-    }
-
-    function renderRankButtons(){
-      const handGrid = document.getElementById('handRanks');
-      const seenGrid = document.getElementById('seenRanks');
-      handGrid.innerHTML = seenGrid.innerHTML = '';
-      RANKS.forEach(r=>{
-        const b1 = document.createElement('div'); b1.className='rank-btn'; b1.textContent=LABEL(r);
-        b1.title=`Add ${LABEL(r)} to your hand`; b1.onclick=()=>addCardToHand(r); handGrid.appendChild(b1);
-
-        const b2 = document.createElement('div'); b2.className='rank-btn'; b2.textContent=LABEL(r);
-        b2.title=`Mark ${LABEL(r)} as seen`; b2.onclick=()=>addSeenCard(r); seenGrid.appendChild(b2);
-      });
-    }
-
-    function pct(x){ return (x*100).toFixed(1)+'%'; }
-
-    function renderStats(){
-      const { remaining, bustN, safeN, bustP, safeP } = computeHitSummary();
-      document.getElementById('bustProbBig').textContent = pct(bustP);
-      document.getElementById('safeProb').textContent = pct(safeP);
-      document.getElementById('bustCount').textContent = `${bustN} / ${remaining}`;
-      document.getElementById('safeCount').textContent = `${safeN} / ${remaining}`;
-    }
-
-    function renderDeckTable(){
-      const tbody = document.querySelector('#deckTable tbody'); tbody.innerHTML='';
-      const remaining = totalCardsLeft();
-      RANKS.forEach(r=>{
-        const cnt = deckCounts[r];
-        if(cnt < 0) return; // should not happen
-        const tr = document.createElement('tr');
-        const prob = remaining ? (cnt/remaining*100) : 0;
-        const isBust = outcomeIfHit(r) === 'bust';
-        if(cnt>0 && isBust) tr.classList.add('row-bust');
-
-        tr.innerHTML = `
-          <td>${LABEL(r)}</td>
-          <td class="num">${cnt}</td>
-          <td class="num">${prob.toFixed(1)}%</td>
-        `;
-        tbody.appendChild(tr);
-      });
-      document.getElementById('remainingTotal').textContent = `Remaining cards in shoe: ${remaining}`;
-    }
-
-    function renderAll(){
-      renderHand();
-      renderSeen();
-      renderRankButtons();
-      renderStats();
-      renderDeckTable();
-    }
-
-    // UI hooks
-    document.getElementById('decks').addEventListener('change', e=>initDeck(e.target.value));
-    document.getElementById('resetDeck').addEventListener('click', resetDeck);
-    document.getElementById('clearHand').addEventListener('click', clearHand);
-    document.getElementById('clearSeen').addEventListener('click', clearSeen);
-
-    // Boot
-    initDeck(document.getElementById('decks').value);
   </script>
 </body>
 </html>
