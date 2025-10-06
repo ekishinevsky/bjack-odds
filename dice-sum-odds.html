@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="color-scheme" content="dark" />
   <title>Dice Sum Odds — Eli Kishinevsky</title>
-  <meta name="description" content="Pick number of dice and sides to see the exact distribution of sums and P(sum ≥ threshold)." />
+  <meta name="description" content="Pick # of dice and sides to see the exact distribution of sums and the chance your total is ≥ a target threshold." />
 
   <!-- GA4 (optional) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-BWPMBYVSD5"></script>
@@ -20,7 +20,7 @@
     :root{
       --bg:#0b0b0f; --card:#121217; --text:#f2f3f5; --muted:#a6a8ad;
       --accent:#5b8cff; --border:#22242b; --radius:14px;
-      --accent-dim: rgba(91,140,255,.35);
+      --accent-dim: rgba(91,140,255,.35); --good:#7aff9a;
     }
     *{box-sizing:border-box}
     html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:16px/1.55 Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
@@ -37,9 +37,9 @@
     .muted{color:var(--muted)}
     .cap{font-variant:all-small-caps;letter-spacing:.5px;color:var(--muted)}
     .grid{display:grid;gap:14px}
-    @media(min-width:900px){ .grid{grid-template-columns:1.2fr .8fr} }
+    @media(min-width:980px){ .grid{grid-template-columns:1.2fr .8fr} }
     .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
-    .controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin:8px 0 16px}
+    .controls{display:grid;grid-template-columns:repeat(5,minmax(120px,1fr));gap:12px;align-items:end;margin:10px 0 16px}
     label{display:flex;flex-direction:column;gap:6px;font-size:14px}
     .input, .select, .range{
       border:1px solid var(--border);background:linear-gradient(180deg,#121217,#0c0c10);
@@ -49,18 +49,25 @@
     .btn{border:1px solid var(--border);background:#101015;color:var(--text);border-radius:10px;padding:8px 10px;cursor:pointer}
     .headline{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
     .big{font-size:32px;font-weight:900;letter-spacing:.3px}
-    .good{color:#7aff9a}
-    .right{float:right}
+    .good{color:var(--good)}
+    .row{display:flex;gap:14px;flex-wrap:wrap}
+    .stat{border:1px solid var(--border);border-radius:12px;padding:8px 12px;background:#101015}
+    .num{font-weight:800}
+    .step{display:flex;align-items:center;gap:8px;margin:10px 0 6px}
+    .step-badge{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:999px;background:var(--accent);color:#0b0b0f;font-weight:800;font-size:12px}
     .table{width:100%;border-collapse:collapse}
     .table th,.table td{padding:10px;border-bottom:1px solid var(--border);text-align:left}
     .table th{color:var(--muted);font-weight:600}
-    .num{text-align:right}
+    .numcell{text-align:right}
     .hi{background:rgba(91,140,255,.09)}
     canvas{width:100%;height:320px;background:#0e0e14;border:1px solid var(--border);border-radius:12px}
     .legend{display:flex;gap:14px;align-items:center;color:var(--muted);font-size:12px}
     .swatch{width:12px;height:12px;border-radius:3px;background:var(--accent)}
     .swatch-dim{background:var(--accent-dim)}
+    details{border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:#0e0e14}
+    details summary{cursor:pointer;color:var(--muted)}
     footer{border-top:1px solid var(--border);margin-top:24px}
+    .radio-row{display:flex;gap:14px;align-items:center}
   </style>
 </head>
 <body>
@@ -79,61 +86,87 @@
   <section class="section">
     <div class="container">
       <h2>Dice Sum Odds</h2>
-      <p class="muted">Exact distribution by convolution. Pick your dice & sides, then choose a threshold to see <strong>P(sum ≥ threshold)</strong>.</p>
+      <p class="muted">Step 1: choose your dice. Step 2: pick a target sum. Read the green number to see how often you meet/exceed it.</p>
 
-      <div class="controls">
+      <!-- STEP 1 & 2 -->
+      <div class="step"><span class="step-badge">1</span><strong>Choose dice</strong></div>
+      <div class="controls" style="margin-top:6px">
         <label>Number of dice
-          <input id="dice" class="input" type="number" min="1" max="12" value="2" />
+          <input id="dice" class="input" type="number" min="1" max="20" value="2" />
         </label>
         <label>Sides per die
-          <input id="sides" class="input" type="number" min="2" max="100" value="6" />
+          <input id="sides" class="input" type="number" min="2" max="200" value="6" />
         </label>
-        <label>Threshold <span class="muted">(sum ≥ k)</span>
+
+        <label>Highlight mode
+          <div class="radio-row">
+            <label><input type="radio" name="mode" value="ge" checked> ≥ k</label>
+            <label><input type="radio" name="mode" value="eq"> = k</label>
+          </div>
+        </label>
+
+        <label>Threshold <span class="muted">(k)</span>
           <input id="threshold" class="input" type="number" value="7" />
         </label>
-        <label style="flex:1">Adjust threshold
+
+        <label style="grid-column:1/-1">Adjust threshold
           <input id="thresholdRange" class="range" type="range" min="2" max="12" value="7" />
         </label>
         <button class="btn" id="reset">Reset</button>
       </div>
 
+      <!-- STATS -->
       <div class="headline">
         <div>
-          <div class="cap">P(sum ≥ <span id="kLabel">7</span>)</div>
+          <div class="cap">P(<span id="probLabel">sum ≥ k</span>)</div>
           <div id="tailProb" class="big good">—</div>
         </div>
-        <div>
-          <div class="cap">Expected sum</div>
-          <div id="expected" class="big">—</div>
-        </div>
-        <div>
-          <div class="cap">Total outcomes</div>
-          <div id="outcomes" class="big">—</div>
+        <div class="row">
+          <div class="stat"><span class="cap">k</span><div class="num" id="kLabel">7</div></div>
+          <div class="stat"><span class="cap">Expected sum</span><div class="num" id="expected">—</div></div>
+          <div class="stat"><span class="cap">Most likely sum(s)</span><div class="num" id="modes">—</div></div>
+          <div class="stat"><span class="cap">Total outcomes</span><div class="num" id="outcomes">—</div></div>
+          <div class="stat"><span class="cap">Range</span><div class="num" id="range">—</div></div>
         </div>
       </div>
 
+      <!-- CHART + TABLE -->
       <div class="grid" style="margin-top:14px">
         <div class="card">
           <div class="legend" style="margin-bottom:8px">
-            <span class="swatch"></span> ≥ k &nbsp;&nbsp;
-            <span class="swatch swatch-dim"></span> &lt; k
+            <span class="swatch"></span> highlighted &nbsp;&nbsp;
+            <span class="swatch swatch-dim"></span> other
           </div>
           <canvas id="hist" width="900" height="320" aria-label="Distribution chart"></canvas>
+          <div class="muted" style="margin-top:6px">X-axis = sum, Y-axis = probability. Vertical line marks k.</div>
         </div>
+
         <div class="card">
           <h3 style="margin-bottom:6px">Distribution table</h3>
           <table class="table" id="distTable">
             <thead>
               <tr>
                 <th>Sum</th>
-                <th class="num">Ways</th>
-                <th class="num">Probability</th>
+                <th class="numcell">Ways</th>
+                <th class="numcell">P(sum = s)</th>
+                <th class="numcell">P(sum ≥ s)</th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
-          <div class="muted right" id="rangeLabel" style="margin-top:8px"></div>
         </div>
+      </div>
+
+      <!-- EXPLAINER -->
+      <div class="section">
+        <details>
+          <summary>How it works (exact, no simulation)</summary>
+          <p style="margin-top:8px" class="muted">
+            There are <code>s^n</code> equally likely outcomes for <code>n</code> dice with <code>s</code> sides. We count how many
+            ways each sum can occur by <em>convolution</em> (a dynamic-programming pass that adds one die at a time).
+            The chart shows probabilities for each total. Switch the highlight between “≥ k” and “= k” to match your question.
+          </p>
+        </details>
       </div>
     </div>
   </section>
@@ -156,25 +189,26 @@
     const tailProbEl = document.getElementById('tailProb');
     const expectedEl = document.getElementById('expected');
     const outcomesEl = document.getElementById('outcomes');
+    const modesEl = document.getElementById('modes');
+    const rangeEl = document.getElementById('range');
     const kLabelEl = document.getElementById('kLabel');
-    const rangeLabelEl = document.getElementById('rangeLabel');
+    const probLabelEl = document.getElementById('probLabel');
     const tableBody = document.querySelector('#distTable tbody');
     const canvas = document.getElementById('hist');
     const ctx = canvas.getContext('2d');
+    const modeRadios = [...document.querySelectorAll('input[name="mode"]')];
 
-    let dist = null; // {min, max, counts[], total, mean}
+    let dist = null; // {min, max, counts[], total, mean, modes[]}
 
     // Compute exact distribution by convolution
     function convolveDice(n, s){
-      // Base: one die uniform 1..s
-      let counts = new Array(s + 1).fill(0);
-      for(let f=1; f<=s; f++) counts[f] = 1;
+      // Start: one die 1..s
+      let counts = new Array(n*s + 1).fill(0);
+      for(let face=1; face<=s; face++) counts[face] = 1;
 
       let min = 1, max = s;
       for(let d=2; d<=n; d++){
-        const newMin = min + 1;
-        const newMax = max + s;
-        const next = new Array(newMax + 1).fill(0);
+        const next = new Array((max + s) + 1).fill(0);
         for(let sum=min; sum<=max; sum++){
           const c = counts[sum]; if(!c) continue;
           for(let f=1; f<=s; f++){
@@ -182,56 +216,83 @@
           }
         }
         counts = next;
-        min = newMin; max = newMax;
+        min = min + 1; max = max + s;
       }
 
+      if(n === 1){ min = 1; max = s; } else { min = n; max = n*s; }
       const total = Math.pow(s, n);
-      // mean = n * (s+1)/2
       const mean = n * (s + 1) / 2;
-      return { min: n, max: n*s, counts, total, mean };
+
+      // Modes (could be 1 or 2 adjacent values due to symmetry)
+      let maxWays = 0;
+      for(let sum=min; sum<=max; sum++) maxWays = Math.max(maxWays, counts[sum] || 0);
+      const modes = [];
+      for(let sum=min; sum<=max; sum++) if((counts[sum] || 0) === maxWays) modes.push(sum);
+
+      return { min, max, counts, total, mean, modes };
     }
 
     // Helpers
-    function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
-    function fmtPct(p){ return (p*100).toFixed(2) + '%'; }
-    function fmtInt(x){ return x.toLocaleString(); }
+    const clamp = (v,min,max)=> Math.max(min, Math.min(max, v));
+    const fmtPct = (p)=> (p*100).toFixed(2) + '%';
+    const fmtInt = (x)=> x.toLocaleString();
+
+    // Recompute tail probs per row (for table)
+    function buildTail(dist){
+      const tail = new Array(dist.max + 2).fill(0);
+      let acc = 0;
+      for(let s=dist.max; s>=dist.min; s--){
+        acc += (dist.counts[s] || 0);
+        tail[s] = acc;
+      }
+      return tail; // tail[s] = ways for ≥ s
+    }
 
     // Renderers
-    function renderTable(k){
+    function renderTable(k, mode){
       tableBody.innerHTML = '';
+      const tailWays = buildTail(dist);
       for(let sum = dist.min; sum <= dist.max; sum++){
         const ways = dist.counts[sum] || 0;
-        const p = ways / dist.total;
+        const pEq = ways / dist.total;
+        const pGe = (tailWays[sum] || 0) / dist.total;
         const tr = document.createElement('tr');
-        if(sum >= k) tr.classList.add('hi');
+
+        const highlight = (mode === 'ge') ? (sum >= k) : (sum === k);
+        if(highlight) tr.classList.add('hi');
+
         tr.innerHTML = `
           <td>${sum}</td>
-          <td class="num">${fmtInt(ways)}</td>
-          <td class="num">${fmtPct(p)}</td>
+          <td class="numcell">${fmtInt(ways)}</td>
+          <td class="numcell">${fmtPct(pEq)}</td>
+          <td class="numcell">${fmtPct(pGe)}</td>
         `;
         tableBody.appendChild(tr);
       }
-      rangeLabelEl.textContent = `Range: ${dist.min} to ${dist.max}`;
     }
 
-    function renderStats(k){
+    function renderStats(k, mode){
+      // P(sum ≥ k) and P(sum = k)
       let tailWays = 0;
-      for(let sum=k; sum<=dist.max; sum++){
-        tailWays += (dist.counts[sum] || 0);
-      }
-      const prob = tailWays / dist.total;
-      tailProbEl.textContent = fmtPct(prob);
+      for(let s=k; s<=dist.max; s++) tailWays += (dist.counts[s] || 0);
+      const pGe = tailWays / dist.total;
+      const pEq = (dist.counts[k] || 0) / dist.total;
+
+      probLabelEl.textContent = (mode === 'ge') ? 'sum ≥ k' : 'sum = k';
+      tailProbEl.textContent = (mode === 'ge') ? fmtPct(pGe) : fmtPct(pEq);
       expectedEl.textContent = dist.mean.toFixed(2);
       outcomesEl.textContent = fmtInt(dist.total);
       kLabelEl.textContent = k;
+      rangeEl.textContent = `${dist.min}–${dist.max}`;
+      modesEl.textContent = dist.modes.join(', ');
     }
 
-    function renderChart(k){
+    function renderChart(k, mode){
       // Clear
       ctx.clearRect(0,0,canvas.width,canvas.height);
 
       // Padding
-      const padL = 36, padR = 12, padT = 12, padB = 28;
+      const padL = 40, padR = 12, padT = 12, padB = 32;
       const w = canvas.width - padL - padR;
       const h = canvas.height - padT - padB;
 
@@ -244,11 +305,7 @@
         if(p > maxP) maxP = p;
       }
 
-      const nBars = probs.length;
-      const gap = 2; // px between bars
-      const barW = Math.max(1, Math.floor((w - gap*(nBars-1)) / nBars));
-
-      // Axes (minimal)
+      // Minimal axes
       ctx.strokeStyle = '#2a2d36';
       ctx.lineWidth = 1;
       ctx.beginPath();
@@ -257,27 +314,39 @@
       ctx.lineTo(padL+w, padT+h);
       ctx.stroke();
 
-      // Y ticks 0, max
+      // Y ticks 0 and max
       ctx.fillStyle = '#8b8f99';
       ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto';
-      ctx.fillText('0', 8, padT+h);
-      ctx.fillText((maxP*100).toFixed(1)+'%', 6, padT+10);
+      ctx.fillText('0', 10, padT+h);
+      ctx.fillText((maxP*100).toFixed(1)+'%', 8, padT+10);
 
       // Bars
+      const nBars = probs.length;
+      const gap = 2;
+      const barW = Math.max(1, Math.floor((w - gap*(nBars-1)) / nBars));
       let x = padL;
+
       for(let i=0; i<nBars; i++){
         const p = probs[i];
         const bh = Math.round((p / maxP) * (h-2));
         const sum = dist.min + i;
-        const highlight = sum >= parseInt(thrEl.value,10);
-
+        const highlight = (mode === 'ge') ? (sum >= k) : (sum === k);
         ctx.fillStyle = highlight ? 'rgba(91,140,255,0.95)' : 'rgba(91,140,255,0.35)';
         ctx.fillRect(x, padT + (h - bh), barW, bh);
-
         x += barW + gap;
       }
 
-      // X tick labels (few)
+      // Vertical line at k
+      const kIndex = k - dist.min; // 0-based
+      const kX = padL + kIndex * (barW + gap) + barW/2;
+      ctx.strokeStyle = '#5b8cff';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(kX, padT);
+      ctx.lineTo(kX, padT+h);
+      ctx.stroke();
+
+      // X labels (sparse)
       ctx.fillStyle = '#8b8f99';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'top';
@@ -290,8 +359,8 @@
     }
 
     function recomputeAndRender(){
-      const n = clamp(parseInt(diceEl.value||2,10), 1, 12);
-      const s = clamp(parseInt(sidesEl.value||6,10), 2, 100);
+      const n = clamp(parseInt(diceEl.value||2,10), 1, 20);
+      const s = clamp(parseInt(sidesEl.value||6,10), 2, 200);
       diceEl.value = n; sidesEl.value = s;
 
       dist = convolveDice(n, s);
@@ -301,26 +370,43 @@
       const kCurrent = clamp(parseInt(thrEl.value||dist.min,10), dist.min, dist.max);
       thrEl.value = kCurrent; thrRangeEl.value = kCurrent;
 
-      renderStats(kCurrent);
-      renderTable(kCurrent);
-      renderChart(kCurrent);
+      const mode = modeRadios.find(r=>r.checked).value;
+
+      renderStats(kCurrent, mode);
+      renderTable(kCurrent, mode);
+      renderChart(kCurrent, mode);
     }
 
-    // Events
+    // Event wiring
+    function updateAllForK(k){
+      const mode = modeRadios.find(r=>r.checked).value;
+      renderStats(k, mode);
+      renderTable(k, mode);
+      renderChart(k, mode);
+    }
+
     diceEl.addEventListener('input', recomputeAndRender);
     sidesEl.addEventListener('input', recomputeAndRender);
+
     thrEl.addEventListener('input', () => {
       const k = clamp(parseInt(thrEl.value||dist.min,10), dist.min, dist.max);
       thrEl.value = k; thrRangeEl.value = k;
-      renderStats(k); renderTable(k); renderChart(k);
+      updateAllForK(k);
     });
     thrRangeEl.addEventListener('input', () => {
       const k = parseInt(thrRangeEl.value,10);
       thrEl.value = k;
-      renderStats(k); renderTable(k); renderChart(k);
+      updateAllForK(k);
     });
+
+    modeRadios.forEach(r => r.addEventListener('change', () => {
+      const k = parseInt(thrEl.value,10);
+      updateAllForK(k);
+    }));
+
     document.getElementById('reset').addEventListener('click', () => {
       diceEl.value = 2; sidesEl.value = 6; thrEl.value = 7; thrRangeEl.value = 7;
+      modeRadios.find(r=>r.value==='ge').checked = true;
       recomputeAndRender();
     });
 
@@ -329,4 +415,3 @@
   </script>
 </body>
 </html>
-
