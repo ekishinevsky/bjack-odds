@@ -1,0 +1,268 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Blackjack Odds — Eli Kishinevsky</title>
+  <meta name="description" content="Interactive blackjack odds: bust chance on hit and odds of landing 17–21 based on remaining cards." />
+
+  <!-- GA4 (optional: keep or remove) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-BWPMBYVSD5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-BWPMBYVSD5');
+  </script>
+
+  <!-- Minimal standalone dark styles -->
+  <style>
+    :root{
+      --bg:#0b0b0f; --card:#121217; --text:#f2f3f5; --muted:#a6a8ad;
+      --accent:#5b8cff; --border:#22242b; --radius:14px;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:16px/1.55 Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    a{color:var(--accent);text-decoration:none}
+    .container{max-width:1080px;margin:0 auto;padding:22px}
+    .nav{position:sticky;top:0;background:linear-gradient(180deg,#0b0b0f,#0b0b0fd0);backdrop-filter:saturate(130%) blur(6px);border-bottom:1px solid var(--border);z-index:5}
+    .nav-inner{display:flex;justify-content:space-between;align-items:center;gap:14px}
+    .brand{display:flex;align-items:center;gap:10px;color:var(--text);font-weight:800;text-decoration:none}
+    .dot{width:10px;height:10px;border-radius:999px;background:linear-gradient(135deg,var(--accent),#8ea8ff);box-shadow:0 0 14px rgba(91,140,255,.66)}
+    nav a{color:var(--muted);margin-left:14px}
+    nav a.active, nav a:hover{color:var(--text)}
+    h1,h2,h3{margin:0 0 8px}
+    .section{padding:28px 0}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+    .controls{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin:10px 0 18px}
+    .select,.btn{border:1px solid var(--border);background:linear-gradient(180deg,#121217,#0c0c10);color:var(--text);border-radius:10px;padding:8px 10px}
+    .btn{cursor:pointer}
+    .flex{display:flex;gap:18px;flex-wrap:wrap}
+    .col{flex:1 1 320px}
+    .pill{display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:999px;margin:4px 6px 0 0;background:var(--card)}
+    .pill .x{cursor:pointer;font-weight:700;opacity:.9}
+    .rank-grid{display:grid;grid-template-columns:repeat(13, minmax(38px,1fr));gap:8px}
+    .rank-btn{border:1px solid var(--border);background:#121217;border-radius:10px;padding:8px 0;text-align:center;cursor:pointer;user-select:none}
+    .rank-btn:hover{border-color:var(--accent)}
+    .muted{color:var(--muted)}
+    .muted-sm{color:var(--muted);font-size:12px}
+    .stats{display:grid;grid-template-columns:repeat(5,1fr);gap:10px}
+    .stat{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:12px;text-align:center}
+    .stat .num{font-size:20px;font-weight:800}
+    .stat .label{color:var(--muted);font-size:12px}
+    .table{width:100%;border-collapse:collapse}
+    .table td,.table th{padding:10px;border-bottom:1px solid var(--border);text-align:left}
+    .table.small td,.table.small th{padding:8px}
+    .right{float:right}
+    .danger{color:#ff7a7a}
+    .good{color:#7aff9a}
+    .note{font-size:12px;color:var(--muted)}
+    footer{border-top:1px solid var(--border);margin-top:24px}
+  </style>
+</head>
+<body>
+  <!-- NAV -->
+  <div class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="#"><span class="dot"></span><span>Blackjack Odds</span></a>
+      <nav>
+        <a class="active" href="#">Home</a>
+        <a href="https://ekishinevsky.github.io/" target="_blank" rel="noopener">Main Site</a>
+      </nav>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="container">
+      <h2>Blackjack Odds</h2>
+      <p class="muted">Build your hand and mark seen cards. The deck updates live to show bust odds if you hit and the chance of drawing to 17–21 next card.</p>
+
+      <div class="controls">
+        <label>Decks:
+          <select id="decks" class="select">
+            <option>1</option><option>2</option><option selected>4</option><option>6</option><option>8</option>
+          </select>
+        </label>
+        <button class="btn" id="resetDeck">Reset deck</button>
+        <button class="btn" id="clearHand">Clear hand</button>
+        <span class="note">A = Ace (1 or 11); T = 10-value (10/J/Q/K)</span>
+      </div>
+
+      <div class="flex">
+        <!-- Your hand -->
+        <div class="col card">
+          <h3>Your Hand</h3>
+          <div id="handPills"></div>
+          <div class="muted-sm" id="handInfo"></div>
+          <div style="margin-top:10px"><div class="rank-grid" id="handRanks"></div></div>
+        </div>
+
+        <!-- Seen cards (not in your hand) -->
+        <div class="col card">
+          <h3>Seen Cards (not in hand)</h3>
+          <div id="seenPills"></div>
+          <div style="margin-top:10px"><div class="rank-grid" id="seenRanks"></div></div>
+          <div class="note" style="margin-top:8px">Tip: click ranks here to subtract cards from the remaining deck (burn/discards/dealer upcard/cards at table).</div>
+        </div>
+      </div>
+
+      <!-- Stats -->
+      <div class="section">
+        <div class="stats">
+          <div class="stat"><div class="num danger" id="bustProb">—</div><div class="label">Bust chance on Hit</div></div>
+          <div class="stat"><div class="num" id="p17">—</div><div class="label">Odds to 17</div></div>
+          <div class="stat"><div class="num" id="p18">—</div><div class="label">Odds to 18</div></div>
+          <div class="stat"><div class="num" id="p19">—</div><div class="label">Odds to 19</div></div>
+          <div class="stat"><div class="num good" id="p20_21">—</div><div class="label">Odds to 20–21</div></div>
+        </div>
+        <div class="note" style="margin-top:8px">Probabilities are for the **next card only** based on the current remaining deck.</div>
+      </div>
+
+      <!-- Deck composition -->
+      <div class="section card">
+        <h3>Remaining Deck</h3>
+        <table class="table small" id="deckTable">
+          <thead><tr><th>Rank</th><th>Count</th><th>Value</th></tr></thead>
+          <tbody></tbody>
+        </table>
+        <div class="muted right" id="remainingTotal"></div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="section">
+    <div class="container">
+      <div class="muted">© <span id="year"></span> Eli Kishinevsky</div>
+    </div>
+  </footer>
+
+  <script>
+    document.getElementById('year').textContent=new Date().getFullYear();
+    const RANKS = ['A','2','3','4','5','6','7','8','9','T','J','Q','K'];
+    function cardValues(rank){ return rank==='A' ? [1,11] : (['T','J','Q','K'].includes(rank) ? [10] : [parseInt(rank,10)]); }
+
+    const hand = [];   // player's hand ranks
+    const seen = [];   // seen cards not in hand
+    let deckCounts = {};
+    let decks = 4;
+
+    function initDeck(nDecks){
+      decks = parseInt(nDecks,10);
+      deckCounts = {};
+      RANKS.forEach(r => deckCounts[r] = 4 * decks); // 4 of each rank per deck
+      hand.length = 0; seen.length = 0;
+      renderAll();
+    }
+
+    function totalCardsLeft(){ return RANKS.reduce((s,r)=>s+deckCounts[r],0); }
+
+    function addCardToHand(rank){
+      if(deckCounts[rank] <= 0) return;
+      deckCounts[rank]--; hand.push(rank); renderAll();
+    }
+    function addSeenCard(rank){
+      if(deckCounts[rank] <= 0) return;
+      deckCounts[rank]--; seen.push(rank); renderAll();
+    }
+    function removeFromHand(i){ const r=hand[i]; hand.splice(i,1); deckCounts[r]++; renderAll(); }
+    function removeFromSeen(i){ const r=seen[i]; seen.splice(i,1); deckCounts[r]++; renderAll(); }
+    function clearHand(){ while(hand.length) removeFromHand(0); }
+    function resetDeck(){ initDeck(decks); }
+
+    function bestHandTotal(cards){
+      let total = 0, aces = 0;
+      for(const r of cards){
+        if(r==='A') aces++; else total += cardValues(r)[0];
+      }
+      for(let i=0;i<aces;i++){
+        if(total + 11 <= 21 - (aces-1 - i)) total += 11; else total += 1;
+      }
+      const soft = aces>0 && total<=21 && (total - aces + 11 + (aces-1) <= 21);
+      return { total, soft };
+    }
+
+    function outcomeIfHit(rank){
+      const newHand = hand.slice(); newHand.push(rank);
+      const { total } = bestHandTotal(newHand);
+      return (total>21) ? { type:'bust', total } : { type:'land', total };
+    }
+
+    function computeNextCardProbs(){
+      const remaining = totalCardsLeft();
+      if(!remaining) return { bust:0, to:{17:0,18:0,19:0,20:0,21:0} };
+      const to = {17:0,18:0,19:0,20:0,21:0}; let bustCount = 0;
+      for(const r of RANKS){
+        const cnt = deckCounts[r]; if(cnt<=0) continue;
+        const out = outcomeIfHit(r);
+        if(out.type==='bust') bustCount += cnt;
+        else if(out.total>=17 && out.total<=21) to[out.total] += cnt;
+      }
+      return { bust:bustCount/remaining, to:{17:to[17]/remaining,18:to[18]/remaining,19:to[19]/remaining,20:to[20]/remaining,21:to[21]/remaining} };
+    }
+
+    function pct(x){ return (x*100).toFixed(1)+'%'; }
+
+    function renderHand(){
+      const pills = document.getElementById('handPills'); pills.innerHTML='';
+      hand.forEach((r,i)=>{
+        const el = document.createElement('span'); el.className='pill';
+        el.innerHTML = `<strong>${r}</strong> <span class="x" title="Remove" role="button">&times;</span>`;
+        el.querySelector('.x').onclick = ()=>removeFromHand(i); pills.appendChild(el);
+      });
+      const info = document.getElementById('handInfo');
+      const { total, soft } = bestHandTotal(hand);
+      info.textContent = hand.length ? `Total: ${total} ${soft ? '(soft)' : '(hard)'}` : 'No cards yet. Click ranks to add.';
+    }
+
+    function renderSeen(){
+      const pills = document.getElementById('seenPills'); pills.innerHTML='';
+      seen.forEach((r,i)=>{
+        const el = document.createElement('span'); el.className='pill';
+        el.innerHTML = `<strong>${r}</strong> <span class="x" title="Undo" role="button">&times;</span>`;
+        el.querySelector('.x').onclick = ()=>removeFromSeen(i); pills.appendChild(el);
+      });
+    }
+
+    function renderRankButtons(){
+      const handGrid = document.getElementById('handRanks');
+      const seenGrid = document.getElementById('seenRanks');
+      handGrid.innerHTML = seenGrid.innerHTML = '';
+      RANKS.forEach(r=>{
+        const b1 = document.createElement('div'); b1.className='rank-btn'; b1.textContent=r; b1.title=`Add ${r} to your hand`; b1.onclick=()=>addCardToHand(r); handGrid.appendChild(b1);
+        const b2 = document.createElement('div'); b2.className='rank-btn'; b2.textContent=r; b2.title=`Mark ${r} as seen`; b2.onclick=()=>addSeenCard(r); seenGrid.appendChild(b2);
+      });
+    }
+
+    function renderDeckTable(){
+      const tbody = document.querySelector('#deckTable tbody'); tbody.innerHTML='';
+      RANKS.forEach(r=>{
+        const tr = document.createElement('tr');
+        const v = cardValues(r).join(' / ');
+        tr.innerHTML = `<td>${r}</td><td>${deckCounts[r]}</td><td>${v}</td>`;
+        tbody.appendChild(tr);
+      });
+      document.getElementById('remainingTotal').textContent = `Remaining cards: ${totalCardsLeft()}`;
+    }
+
+    function renderStats(){
+      const probs = computeNextCardProbs();
+      document.getElementById('bustProb').textContent = pct(probs.bust);
+      document.getElementById('p17').textContent = pct(probs.to[17]);
+      document.getElementById('p18').textContent = pct(probs.to[18]);
+      document.getElementById('p19').textContent = pct(probs.to[19]);
+      document.getElementById('p20_21').textContent = pct(probs.to[20] + probs.to[21]);
+    }
+
+    function renderAll(){ renderHand(); renderSeen(); renderRankButtons(); renderDeckTable(); renderStats(); }
+
+    // UI hooks
+    document.getElementById('decks').addEventListener('change', e=>initDeck(e.target.value));
+    document.getElementById('resetDeck').addEventListener('click', resetDeck);
+    document.getElementById('clearHand').addEventListener('click', clearHand);
+
+    // Boot
+    initDeck(document.getElementById('decks').value);
+  </script>
+</body>
+</html>
