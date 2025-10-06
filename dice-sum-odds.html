@@ -1,1 +1,332 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Dice Sum Odds — Eli Kishinevsky</title>
+  <meta name="description" content="Pick number of dice and sides to see the exact distribution of sums and P(sum ≥ threshold)." />
+
+  <!-- GA4 (optional) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-BWPMBYVSD5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-BWPMBYVSD5');
+  </script>
+
+  <style>
+    :root{
+      --bg:#0b0b0f; --card:#121217; --text:#f2f3f5; --muted:#a6a8ad;
+      --accent:#5b8cff; --border:#22242b; --radius:14px;
+      --accent-dim: rgba(91,140,255,.35);
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:16px/1.55 Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    a{color:var(--accent);text-decoration:none}
+    .container{max-width:1080px;margin:0 auto;padding:22px}
+    .nav{position:sticky;top:0;background:linear-gradient(180deg,#0b0b0f,#0b0b0fd0);backdrop-filter:saturate(130%) blur(6px);border-bottom:1px solid var(--border);z-index:5}
+    .nav-inner{display:flex;justify-content:space-between;align-items:center;gap:14px}
+    .brand{display:flex;align-items:center;gap:10px;color:var(--text);font-weight:800;text-decoration:none}
+    .dot{width:10px;height:10px;border-radius:999px;background:linear-gradient(135deg,var(--accent),#8ea8ff);box-shadow:0 0 14px rgba(91,140,255,.66)}
+    nav a{color:var(--muted);margin-left:14px}
+    nav a.active, nav a:hover{color:var(--text)}
+    h1,h2,h3{margin:0 0 8px}
+    .section{padding:24px 0}
+    .muted{color:var(--muted)}
+    .cap{font-variant:all-small-caps;letter-spacing:.5px;color:var(--muted)}
+    .grid{display:grid;gap:14px}
+    @media(min-width:900px){ .grid{grid-template-columns:1.2fr .8fr} }
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+    .controls{display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin:8px 0 16px}
+    label{display:flex;flex-direction:column;gap:6px;font-size:14px}
+    .input, .select, .range{
+      border:1px solid var(--border);background:linear-gradient(180deg,#121217,#0c0c10);
+      color:var(--text);border-radius:10px;padding:8px 10px
+    }
+    .range{padding:6px 8px}
+    .btn{border:1px solid var(--border);background:#101015;color:var(--text);border-radius:10px;padding:8px 10px;cursor:pointer}
+    .headline{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+    .big{font-size:32px;font-weight:900;letter-spacing:.3px}
+    .good{color:#7aff9a}
+    .right{float:right}
+    .table{width:100%;border-collapse:collapse}
+    .table th,.table td{padding:10px;border-bottom:1px solid var(--border);text-align:left}
+    .table th{color:var(--muted);font-weight:600}
+    .num{text-align:right}
+    .hi{background:rgba(91,140,255,.09)}
+    canvas{width:100%;height:320px;background:#0e0e14;border:1px solid var(--border);border-radius:12px}
+    .legend{display:flex;gap:14px;align-items:center;color:var(--muted);font-size:12px}
+    .swatch{width:12px;height:12px;border-radius:3px;background:var(--accent)}
+    .swatch-dim{background:var(--accent-dim)}
+    footer{border-top:1px solid var(--border);margin-top:24px}
+  </style>
+</head>
+<body>
+  <!-- NAV -->
+  <div class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html"><span class="dot"></span><span>Probability Tools</span></a>
+      <nav>
+        <a href="index.html">All Tools</a>
+        <a class="active" href="dice-sum-odds.html">Dice</a>
+        <a href="https://ekishinevsky.github.io/" target="_blank" rel="noopener">Main Site</a>
+      </nav>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="container">
+      <h2>Dice Sum Odds</h2>
+      <p class="muted">Exact distribution by convolution. Pick your dice & sides, then choose a threshold to see <strong>P(sum ≥ threshold)</strong>.</p>
+
+      <div class="controls">
+        <label>Number of dice
+          <input id="dice" class="input" type="number" min="1" max="12" value="2" />
+        </label>
+        <label>Sides per die
+          <input id="sides" class="input" type="number" min="2" max="100" value="6" />
+        </label>
+        <label>Threshold <span class="muted">(sum ≥ k)</span>
+          <input id="threshold" class="input" type="number" value="7" />
+        </label>
+        <label style="flex:1">Adjust threshold
+          <input id="thresholdRange" class="range" type="range" min="2" max="12" value="7" />
+        </label>
+        <button class="btn" id="reset">Reset</button>
+      </div>
+
+      <div class="headline">
+        <div>
+          <div class="cap">P(sum ≥ <span id="kLabel">7</span>)</div>
+          <div id="tailProb" class="big good">—</div>
+        </div>
+        <div>
+          <div class="cap">Expected sum</div>
+          <div id="expected" class="big">—</div>
+        </div>
+        <div>
+          <div class="cap">Total outcomes</div>
+          <div id="outcomes" class="big">—</div>
+        </div>
+      </div>
+
+      <div class="grid" style="margin-top:14px">
+        <div class="card">
+          <div class="legend" style="margin-bottom:8px">
+            <span class="swatch"></span> ≥ k &nbsp;&nbsp;
+            <span class="swatch swatch-dim"></span> &lt; k
+          </div>
+          <canvas id="hist" width="900" height="320" aria-label="Distribution chart"></canvas>
+        </div>
+        <div class="card">
+          <h3 style="margin-bottom:6px">Distribution table</h3>
+          <table class="table" id="distTable">
+            <thead>
+              <tr>
+                <th>Sum</th>
+                <th class="num">Ways</th>
+                <th class="num">Probability</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+          <div class="muted right" id="rangeLabel" style="margin-top:8px"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="section">
+    <div class="container">
+      <div class="muted">© <span id="year"></span> Eli Kishinevsky</div>
+    </div>
+  </footer>
+
+  <script>
+    // Footer year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Elements
+    const diceEl = document.getElementById('dice');
+    const sidesEl = document.getElementById('sides');
+    const thrEl = document.getElementById('threshold');
+    const thrRangeEl = document.getElementById('thresholdRange');
+    const tailProbEl = document.getElementById('tailProb');
+    const expectedEl = document.getElementById('expected');
+    const outcomesEl = document.getElementById('outcomes');
+    const kLabelEl = document.getElementById('kLabel');
+    const rangeLabelEl = document.getElementById('rangeLabel');
+    const tableBody = document.querySelector('#distTable tbody');
+    const canvas = document.getElementById('hist');
+    const ctx = canvas.getContext('2d');
+
+    let dist = null; // {min, max, counts[], total, mean}
+
+    // Compute exact distribution by convolution
+    function convolveDice(n, s){
+      // Base: one die uniform 1..s
+      let counts = new Array(s + 1).fill(0);
+      for(let f=1; f<=s; f++) counts[f] = 1;
+
+      let min = 1, max = s;
+      for(let d=2; d<=n; d++){
+        const newMin = min + 1;
+        const newMax = max + s;
+        const next = new Array(newMax + 1).fill(0);
+        for(let sum=min; sum<=max; sum++){
+          const c = counts[sum]; if(!c) continue;
+          for(let f=1; f<=s; f++){
+            next[sum + f] += c;
+          }
+        }
+        counts = next;
+        min = newMin; max = newMax;
+      }
+
+      const total = Math.pow(s, n);
+      // mean = n * (s+1)/2
+      const mean = n * (s + 1) / 2;
+      return { min: n, max: n*s, counts, total, mean };
+    }
+
+    // Helpers
+    function clamp(v,min,max){ return Math.max(min, Math.min(max, v)); }
+    function fmtPct(p){ return (p*100).toFixed(2) + '%'; }
+    function fmtInt(x){ return x.toLocaleString(); }
+
+    // Renderers
+    function renderTable(k){
+      tableBody.innerHTML = '';
+      for(let sum = dist.min; sum <= dist.max; sum++){
+        const ways = dist.counts[sum] || 0;
+        const p = ways / dist.total;
+        const tr = document.createElement('tr');
+        if(sum >= k) tr.classList.add('hi');
+        tr.innerHTML = `
+          <td>${sum}</td>
+          <td class="num">${fmtInt(ways)}</td>
+          <td class="num">${fmtPct(p)}</td>
+        `;
+        tableBody.appendChild(tr);
+      }
+      rangeLabelEl.textContent = `Range: ${dist.min} to ${dist.max}`;
+    }
+
+    function renderStats(k){
+      let tailWays = 0;
+      for(let sum=k; sum<=dist.max; sum++){
+        tailWays += (dist.counts[sum] || 0);
+      }
+      const prob = tailWays / dist.total;
+      tailProbEl.textContent = fmtPct(prob);
+      expectedEl.textContent = dist.mean.toFixed(2);
+      outcomesEl.textContent = fmtInt(dist.total);
+      kLabelEl.textContent = k;
+    }
+
+    function renderChart(k){
+      // Clear
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+
+      // Padding
+      const padL = 36, padR = 12, padT = 12, padB = 28;
+      const w = canvas.width - padL - padR;
+      const h = canvas.height - padT - padB;
+
+      // Data
+      const probs = [];
+      let maxP = 0;
+      for(let sum=dist.min; sum<=dist.max; sum++){
+        const p = (dist.counts[sum] || 0) / dist.total;
+        probs.push(p);
+        if(p > maxP) maxP = p;
+      }
+
+      const nBars = probs.length;
+      const gap = 2; // px between bars
+      const barW = Math.max(1, Math.floor((w - gap*(nBars-1)) / nBars));
+
+      // Axes (minimal)
+      ctx.strokeStyle = '#2a2d36';
+      ctx.lineWidth = 1;
+      ctx.beginPath();
+      ctx.moveTo(padL, padT);
+      ctx.lineTo(padL, padT+h);
+      ctx.lineTo(padL+w, padT+h);
+      ctx.stroke();
+
+      // Y ticks 0, max
+      ctx.fillStyle = '#8b8f99';
+      ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto';
+      ctx.fillText('0', 8, padT+h);
+      ctx.fillText((maxP*100).toFixed(1)+'%', 6, padT+10);
+
+      // Bars
+      let x = padL;
+      for(let i=0; i<nBars; i++){
+        const p = probs[i];
+        const bh = Math.round((p / maxP) * (h-2));
+        const sum = dist.min + i;
+        const highlight = sum >= parseInt(thrEl.value,10);
+
+        ctx.fillStyle = highlight ? 'rgba(91,140,255,0.95)' : 'rgba(91,140,255,0.35)';
+        ctx.fillRect(x, padT + (h - bh), barW, bh);
+
+        x += barW + gap;
+      }
+
+      // X tick labels (few)
+      ctx.fillStyle = '#8b8f99';
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'top';
+      const step = Math.ceil(nBars / 10);
+      x = padL + barW/2;
+      for(let i=0; i<nBars; i+=step){
+        const sum = dist.min + i;
+        ctx.fillText(sum.toString(), x + i*(barW+gap), padT+h+6);
+      }
+    }
+
+    function recomputeAndRender(){
+      const n = clamp(parseInt(diceEl.value||2,10), 1, 12);
+      const s = clamp(parseInt(sidesEl.value||6,10), 2, 100);
+      diceEl.value = n; sidesEl.value = s;
+
+      dist = convolveDice(n, s);
+
+      // Sync threshold controls
+      thrRangeEl.min = dist.min; thrRangeEl.max = dist.max;
+      const kCurrent = clamp(parseInt(thrEl.value||dist.min,10), dist.min, dist.max);
+      thrEl.value = kCurrent; thrRangeEl.value = kCurrent;
+
+      renderStats(kCurrent);
+      renderTable(kCurrent);
+      renderChart(kCurrent);
+    }
+
+    // Events
+    diceEl.addEventListener('input', recomputeAndRender);
+    sidesEl.addEventListener('input', recomputeAndRender);
+    thrEl.addEventListener('input', () => {
+      const k = clamp(parseInt(thrEl.value||dist.min,10), dist.min, dist.max);
+      thrEl.value = k; thrRangeEl.value = k;
+      renderStats(k); renderTable(k); renderChart(k);
+    });
+    thrRangeEl.addEventListener('input', () => {
+      const k = parseInt(thrRangeEl.value,10);
+      thrEl.value = k;
+      renderStats(k); renderTable(k); renderChart(k);
+    });
+    document.getElementById('reset').addEventListener('click', () => {
+      diceEl.value = 2; sidesEl.value = 6; thrEl.value = 7; thrRangeEl.value = 7;
+      recomputeAndRender();
+    });
+
+    // Boot
+    recomputeAndRender();
+  </script>
+</body>
+</html>
 
