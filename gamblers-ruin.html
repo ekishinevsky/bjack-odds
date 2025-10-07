@@ -1,1 +1,289 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Gambler’s Ruin — Eli Kishinevsky</title>
+  <meta name="description" content="Given bankroll, goal, bet size, and per-bet win probability, see probability of ruin, chance to reach the goal, and expected number of bets." />
+
+  <!-- GA4 (optional) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-BWPMBYVSD5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-BWPMBYVSD5');
+  </script>
+
+  <style>
+    :root{
+      --bg:#0b0b0f; --card:#121217; --text:#f2f3f5; --muted:#a6a8ad;
+      --accent:#5b8cff; --border:#22242b; --radius:14px;
+      --good:#7aff9a; --bad:#ff7a7a;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:16px/1.55 Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    a{color:var(--accent);text-decoration:none}
+    .container{max-width:980px;margin:0 auto;padding:22px}
+    .nav{position:sticky;top:0;background:linear-gradient(180deg,#0b0b0f,#0b0b0fd0);backdrop-filter:saturate(130%) blur(6px);border-bottom:1px solid var(--border);z-index:5}
+    .nav-inner{display:flex;justify-content:space-between;align-items:center;gap:14px}
+    .brand{display:flex;align-items:center;gap:10px;color:var(--text);font-weight:800;text-decoration:none}
+    .dot{width:10px;height:10px;border-radius:999px;background:linear-gradient(135deg,var(--accent),#8ea8ff);box-shadow:0 0 14px rgba(91,140,255,.66)}
+    nav a{color:var(--muted);margin-left:14px}
+    nav a.active, nav a:hover{color:var(--text)}
+    h1,h2,h3{margin:0 0 8px}
+    .section{padding:24px 0}
+    .muted{color:var(--muted)}
+    .cap{font-variant:all-small-caps;letter-spacing:.5px;color:var(--muted)}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
+    label{display:flex;flex-direction:column;gap:6px;font-size:14px}
+    .input{
+      border:1px solid var(--border);background:linear-gradient(180deg,#121217,#0c0c10);
+      color:var(--text);border-radius:10px;padding:8px 10px;min-width:160px
+    }
+    .btn{border:1px solid var(--border);background:#101015;color:var(--text);border-radius:10px;padding:8px 10px;cursor:pointer}
+    .chips{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 12px}
+    .chip{border:1px solid var(--border);border-radius:999px;padding:6px 10px;background:#101015;cursor:pointer}
+    .headline{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+    .box{border:1px solid var(--border);border-radius:12px;padding:12px;background:#101015}
+    .big{font-size:30px;font-weight:900}
+    .good{color:var(--good)} .bad{color:var(--bad)}
+    .small{font-size:12px;color:var(--muted)}
+    .stats{display:grid;grid-template-columns:repeat(4, minmax(140px,1fr));gap:10px}
+    details{border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:#0e0e14}
+    details summary{cursor:pointer;color:var(--muted)}
+    footer{border-top:1px solid var(--border);margin-top:24px}
+  </style>
+</head>
+<body>
+  <!-- NAV -->
+  <div class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html"><span class="dot"></span><span>Probability Tools</span></a>
+      <nav>
+        <a href="index.html">All Tools</a>
+        <a class="active" href="gamblers-ruin.html">Gambler’s Ruin</a>
+        <a href="https://ekishinevsky.github.io/" target="_blank" rel="noopener">Main Site</a>
+      </nav>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="container">
+      <h2>Gambler’s Ruin</h2>
+      <p class="muted">Enter your bankroll, goal, constant bet size, and per-bet win chance. We treat <strong>one full bet</strong> as one step. Results are exact for this model (independent bets, no table limits, constant bet).</p>
+
+      <!-- Presets -->
+      <div class="chips">
+        <span class="chip" data-br="100" data-goal="200" data-bet="10" data-p="50">Fair (p=50%) · $100 → $200 · $10 bets</span>
+        <span class="chip" data-br="100" data-goal="200" data-bet="10" data-p="55">Edge (p=55%) · $100 → $200 · $10 bets</span>
+        <span class="chip" data-br="200" data-goal="400" data-bet="25" data-p="48">Under edge (p=48%) · $200 → $400 · $25 bets</span>
+      </div>
+
+      <!-- Inputs -->
+      <div class="card">
+        <div class="row">
+          <label>Bankroll ($)
+            <input id="bankroll" class="input" type="number" min="0" step="1" value="100" />
+          </label>
+          <label>Goal ($)
+            <input id="goal" class="input" type="number" min="0" step="1" value="200" />
+          </label>
+          <label>Bet size ($) <span class="muted">(constant)</span>
+            <input id="bet" class="input" type="number" min="1" step="1" value="10" />
+          </label>
+          <label>Win chance per bet (%)
+            <input id="p" class="input" type="number" min="0" max="100" step="0.1" value="50" />
+          </label>
+          <button class="btn" id="reset">Reset</button>
+        </div>
+        <div class="small" id="unitNote"></div>
+      </div>
+
+      <!-- Main results -->
+      <div class="headline" style="margin-top:14px">
+        <div class="box">
+          <div class="cap">Probability of ruin</div>
+          <div id="pruin" class="big bad">—</div>
+        </div>
+        <div class="box">
+          <div class="cap">Probability of reaching goal</div>
+          <div id="pgoal" class="big good">—</div>
+        </div>
+        <div class="box">
+          <div class="cap">Expected number of bets (to ruin or goal)</div>
+          <div id="etime" class="big">—</div>
+        </div>
+      </div>
+
+      <!-- Secondary stats -->
+      <div class="stats" style="margin-top:12px">
+        <div class="box">
+          <div class="cap">Steps used (bets)</div>
+          <div id="steps" class="big">—</div>
+          <div class="small">Start = i, Goal = N (i bets from $bankroll; N bets to goal)</div>
+        </div>
+        <div class="box">
+          <div class="cap">Per-bet edge</div>
+          <div id="edge" class="big">—</div>
+          <div class="small">p − (1−p)</div>
+        </div>
+        <div class="box">
+          <div class="cap">Fair-game check</div>
+          <div id="fair" class="big">—</div>
+          <div class="small">p = 50% ⇒ ruin = 1 − i/N</div>
+        </div>
+        <div class="box">
+          <div class="cap">Model assumptions</div>
+          <div class="small">Independent bets, constant bet size, no limits; absorb at $0 or goal.</div>
+        </div>
+      </div>
+
+      <!-- Explainer -->
+      <div class="section">
+        <details>
+          <summary>How it’s calculated (exact formulas)</summary>
+          <p class="muted" style="margin-top:6px">
+            Let <strong>i</strong> = ⌊bankroll / bet⌋ (whole bets you can afford) and <strong>N</strong> = ⌈goal / bet⌉ (whole bets to reach goal).
+            Let <strong>p</strong> be the per-bet win probability and <strong>q</strong>=1−p. Then:
+          </p>
+          <ul class="muted">
+            <li>Goal probability (hit N before 0):
+              <br><code>p_goal = i/N</code> if p = 0.5; otherwise <code>p_goal = (1 − r^i) / (1 − r^N)</code> where <code>r = q/p</code>.</li>
+            <li>Ruin probability: <code>p_ruin = 1 − p_goal</code>.</li>
+            <li>Expected bets to absorption:
+              <br><code>E[T] = i(N−i)</code> if p = 0.5;
+              otherwise <code>E[T] = i/(q−p) − (N/(q−p))·(1 − r^i)/(1 − r^N)</code>.</li>
+          </ul>
+          <p class="muted">We round i down and N up so the math matches actual whole bets. If i ≥ N you’re already at/above the goal (p_ruin=0).</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <footer class="section">
+    <div class="container">
+      <div class="muted">© <span id="year"></span> Eli Kishinevsky</div>
+    </div>
+  </footer>
+
+  <script>
+    // Footer year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Elements
+    const brEl = document.getElementById('bankroll');
+    const goalEl = document.getElementById('goal');
+    const betEl = document.getElementById('bet');
+    const pEl = document.getElementById('p');
+    const resetBtn = document.getElementById('reset');
+
+    const unitNoteEl = document.getElementById('unitNote');
+    const pruinEl = document.getElementById('pruin');
+    const pgoalEl = document.getElementById('pgoal');
+    const etimeEl = document.getElementById('etime');
+    const stepsEl = document.getElementById('steps');
+    const edgeEl = document.getElementById('edge');
+    const fairEl = document.getElementById('fair');
+
+    const chips = document.querySelectorAll('.chip');
+    chips.forEach(c => c.addEventListener('click', () => {
+      brEl.value = c.dataset.br;
+      goalEl.value = c.dataset.goal;
+      betEl.value = c.dataset.bet;
+      pEl.value = c.dataset.p;
+      recompute();
+    }));
+
+    [brEl, goalEl, betEl, pEl].forEach(el => el.addEventListener('input', recompute));
+    resetBtn.addEventListener('click', () => {
+      brEl.value = 100; goalEl.value = 200; betEl.value = 10; pEl.value = 50;
+      recompute();
+    });
+
+    const pct = x => (x*100).toFixed(2)+'%';
+    const clamp = (v,min,max)=> Math.max(min, Math.min(max, v));
+
+    function recompute(){
+      let bankroll = Math.max(0, Number(brEl.value)||0);
+      let goal = Math.max(0, Number(goalEl.value)||0);
+      let bet = Math.max(1, Number(betEl.value)||1);
+      let p = clamp((Number(pEl.value)||0)/100, 0, 1);
+      const q = 1 - p;
+
+      // Convert to steps: i = floor(bankroll/bet), N = ceil(goal/bet)
+      const i = Math.floor(bankroll / bet);
+      const N = Math.ceil(goal / bet);
+
+      // Unit note
+      unitNoteEl.textContent = `Using whole-bet steps: start i = ${i}, goal N = ${N}. (1 step = $${bet}.)`;
+
+      // Edge display
+      const edge = p - q; // = 2p - 1
+      edgeEl.textContent = (edge >= 0 ? '+' : '') + (edge*100).toFixed(2) + '%';
+
+      // Fair check
+      fairEl.textContent = (Math.abs(p - 0.5) < 1e-12) ? 'Fair (p = 50%)' : (p > 0.5 ? 'Player-favored' : 'House-favored');
+
+      // Validate
+      if (bet <= 0 || N <= 0) {
+        pruinEl.textContent = '—'; pgoalEl.textContent = '—'; etimeEl.textContent = '—';
+        stepsEl.textContent = '—';
+        return;
+      }
+
+      // Already at/above goal?
+      if (i >= N) {
+        pruinEl.textContent = '0.00%';
+        pgoalEl.textContent = '100.00%';
+        etimeEl.textContent = '0';
+        stepsEl.textContent = `i=${i}, N=${N}`;
+        return;
+      }
+
+      // If you can't afford even one full bet:
+      if (i <= 0) {
+        pruinEl.textContent = '100.00%';
+        pgoalEl.textContent = '0.00%';
+        etimeEl.textContent = '0';
+        stepsEl.textContent = `i=${i}, N=${N}`;
+        return;
+      }
+
+      // Compute p_goal, p_ruin, E[T]
+      let p_goal, p_ruin, E;
+      if (Math.abs(p - 0.5) < 1e-12) {
+        // fair random walk
+        p_goal = i / N;
+        p_ruin = 1 - p_goal;
+        E = i * (N - i);
+      } else {
+        const r = q / p;
+        const rN = Math.pow(r, N);
+        const ri = Math.pow(r, i);
+
+        p_goal = (1 - ri) / (1 - rN);
+        p_goal = clamp(p_goal, 0, 1);
+        p_ruin = 1 - p_goal;
+
+        const denom = (q - p);
+        // E[T] formula
+        E = (i / denom) - (N / denom) * ((1 - ri) / (1 - rN));
+        // Guard for tiny negatives due to floating error
+        if (!isFinite(E) || E < 0) E = 0;
+      }
+
+      pruinEl.textContent = pct(p_ruin);
+      pgoalEl.textContent = pct(p_goal);
+      etimeEl.textContent = Math.round(E).toLocaleString();
+      stepsEl.textContent = `i=${i}, N=${N}`;
+    }
+
+    // Boot
+    recompute();
+  </script>
+</body>
+</html>
 
