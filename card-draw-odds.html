@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="color-scheme" content="dark" />
   <title>Card Draw Odds (Hypergeometric) — Eli Kishinevsky</title>
-  <meta name="description" content="From a deck with K target cards out of N, what's the chance you draw at least x targets in n draws (without replacement)?" />
+  <meta name="description" content="From a deck with K target cards out of N, drawing n without replacement, what's the chance of ≥x (or exactly x) hits? Minimal, clear, and exact." />
 
   <!-- GA4 (optional) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-BWPMBYVSD5"></script>
@@ -19,13 +19,12 @@
   <style>
     :root{
       --bg:#0b0b0f; --card:#121217; --text:#f2f3f5; --muted:#a6a8ad;
-      --accent:#5b8cff; --border:#22242b; --radius:14px;
-      --accent-dim: rgba(91,140,255,.35); --good:#7aff9a;
+      --accent:#5b8cff; --border:#22242b; --radius:14px; --good:#7aff9a;
     }
     *{box-sizing:border-box}
     html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:16px/1.55 Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
     a{color:var(--accent);text-decoration:none}
-    .container{max-width:1080px;margin:0 auto;padding:22px}
+    .container{max-width:900px;margin:0 auto;padding:22px}
     .nav{position:sticky;top:0;background:linear-gradient(180deg,#0b0b0f,#0b0b0fd0);backdrop-filter:saturate(130%) blur(6px);border-bottom:1px solid var(--border);z-index:5}
     .nav-inner{display:flex;justify-content:space-between;align-items:center;gap:14px}
     .brand{display:flex;align-items:center;gap:10px;color:var(--text);font-weight:800;text-decoration:none}
@@ -33,39 +32,31 @@
     nav a{color:var(--muted);margin-left:14px}
     nav a.active, nav a:hover{color:var(--text)}
     h1,h2,h3{margin:0 0 8px}
-    .section{padding:24px 0}
+    .section{padding:22px 0}
     .muted{color:var(--muted)}
     .cap{font-variant:all-small-caps;letter-spacing:.5px;color:var(--muted)}
-    .grid{display:grid;gap:14px}
-    @media(min-width:980px){ .grid{grid-template-columns:1.2fr .8fr} }
-    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
-    .controls{display:grid;grid-template-columns:repeat(6,minmax(120px,1fr));gap:12px;align-items:end;margin:10px 0 16px}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:end}
     label{display:flex;flex-direction:column;gap:6px;font-size:14px}
-    .input, .range{
+    .input{
       border:1px solid var(--border);background:linear-gradient(180deg,#121217,#0c0c10);
-      color:var(--text);border-radius:10px;padding:8px 10px
+      color:var(--text);border-radius:10px;padding:8px 10px;min-width:120px
     }
     .btn{border:1px solid var(--border);background:#101015;color:var(--text);border-radius:10px;padding:8px 10px;cursor:pointer}
-    .radio-row{display:flex;gap:14px;align-items:center}
-    .headline{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
-    .big{font-size:32px;font-weight:900;letter-spacing:.3px}
+    .radio{display:flex;gap:12px;align-items:center}
+    .headline{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:14px;padding:16px;margin-top:14px}
+    .big{font-size:34px;font-weight:900;letter-spacing:.3px}
     .good{color:var(--good)}
-    .row{display:flex;gap:14px;flex-wrap:wrap}
-    .stat{border:1px solid var(--border);border-radius:12px;padding:8px 12px;background:#101015}
-    .num{font-weight:800}
-    .table{width:100%;border-collapse:collapse}
-    .table th,.table td{padding:10px;border-bottom:1px solid var(--border);text-align:left}
-    .table th{color:var(--muted);font-weight:600}
-    .numcell{text-align:right}
-    .hi{background:rgba(91,140,255,.09)}
-    canvas{width:100%;height:320px;background:#0e0e14;border:1px solid var(--border);border-radius:12px}
-    .legend{display:flex;gap:14px;align-items:center;color:var(--muted);font-size:12px}
-    .swatch{width:12px;height:12px;border-radius:3px;background:var(--accent)}
-    .swatch-dim{background:var(--accent-dim)}
+    .sentence{font-size:15px}
+    .stat{border:1px solid var(--border);border-radius:12px;padding:8px 10px;background:#101015}
     details{border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:#0e0e14}
     details summary{cursor:pointer;color:var(--muted)}
-    .chips{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0}
+    .table{width:100%;border-collapse:collapse;margin-top:8px}
+    .table th,.table td{padding:8px;border-bottom:1px solid var(--border);text-align:left}
+    .table th{color:var(--muted);font-weight:600}
+    .num{text-align:right}
     .chip{border:1px solid var(--border);border-radius:999px;padding:6px 10px;background:#101015;cursor:pointer}
+    .chips{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 12px}
     footer{border-top:1px solid var(--border);margin-top:24px}
   </style>
 </head>
@@ -85,91 +76,70 @@
   <section class="section">
     <div class="container">
       <h2>Card Draw Odds (Hypergeometric)</h2>
-      <p class="muted">Example: “From a 52-card deck with <strong>4 Aces</strong>, what’s the chance I see <strong>≥ 1 Ace</strong> in <strong>5</strong> draws (without replacement)?”</p>
+      <p class="muted">Pick your deck, how many “target” cards are in it, how many you draw (no replacement), and how many hits you care about.</p>
 
-      <!-- Presets -->
+      <!-- tiny presets for clarity -->
       <div class="chips">
-        <span class="chip" data-n="52" data-k="4" data-d="2" data-x="1">52-deck • ≥1 Ace in 2</span>
-        <span class="chip" data-n="52" data-k="4" data-d="5" data-x="1">52-deck • ≥1 Ace in 5</span>
-        <span class="chip" data-n="52" data-k="4" data-d="7" data-x="1">52-deck • ≥1 Ace in 7</span>
-        <span class="chip" data-n="60" data-k="8" data-d="7" data-x="2">60 deck • ≥2 hits in 7</span>
+        <span class="chip" data-n="52" data-k="4" data-d="5" data-x="1">52-card deck · ≥1 Ace in 5</span>
+        <span class="chip" data-n="52" data-k="4" data-d="2" data-x="1">52-card deck · ≥1 Ace in 2</span>
       </div>
 
-      <!-- Controls -->
-      <div class="controls">
-        <label>Population size <span class="muted">(N, total cards)</span>
-          <input id="N" class="input" type="number" min="1" max="100000" value="52" />
-        </label>
-        <label>Successes in population <span class="muted">(K, target cards)</span>
-          <input id="K" class="input" type="number" min="0" max="52" value="4" />
-        </label>
-        <label>Draws without replacement <span class="muted">(n)</span>
-          <input id="n" class="input" type="number" min="0" max="52" value="5" />
-        </label>
-        <label>Threshold <span class="muted">(x)</span>
-          <input id="x" class="input" type="number" min="0" max="5" value="1" />
-        </label>
-        <label>Highlight
-          <div class="radio-row">
-            <label><input type="radio" name="mode" value="ge" checked> ≥ x</label>
-            <label><input type="radio" name="mode" value="eq"> = x</label>
-          </div>
-        </label>
-        <button class="btn" id="reset">Reset</button>
+      <!-- Inputs -->
+      <div class="card">
+        <div class="row">
+          <label>Deck size (N)
+            <input id="N" class="input" type="number" min="1" max="100000" value="52" />
+          </label>
+          <label>Target cards in deck (K)
+            <input id="K" class="input" type="number" min="0" max="52" value="4" />
+          </label>
+          <label>Draws (n) <span class="muted">(without replacement)</span>
+            <input id="n" class="input" type="number" min="0" max="52" value="5" />
+          </label>
+          <label>Hits (x)
+            <input id="x" class="input" type="number" min="0" max="5" value="1" />
+          </label>
+          <label>We care about
+            <div class="radio">
+              <label><input type="radio" name="mode" value="ge" checked> ≥ x</label>
+              <label><input type="radio" name="mode" value="eq"> = x</label>
+            </div>
+          </label>
+          <button class="btn" id="reset">Reset</button>
+        </div>
+        <div class="muted" style="margin-top:8px">Valid X range updates automatically. This is the exact <em>hypergeometric</em> distribution (no simulation).</div>
       </div>
 
-      <!-- Stats -->
+      <!-- Big answer -->
       <div class="headline">
         <div>
-          <div class="cap">P(<span id="probLabel">X ≥ x</span>)</div>
-          <div id="mainProb" class="big good">—</div>
+          <div class="cap">Probability</div>
+          <div id="answer" class="big good">—</div>
         </div>
-        <div class="row">
-          <div class="stat"><span class="cap">x</span><div class="num" id="xLabel">1</div></div>
-          <div class="stat"><span class="cap">Valid range for X</span><div class="num" id="xRange">—</div></div>
-          <div class="stat"><span class="cap">E[X]</span><div class="num" id="mean">—</div></div>
-          <div class="stat"><span class="cap">SD[X]</span><div class="num" id="sd">—</div></div>
-          <div class="stat"><span class="cap">Most likely X</span><div class="num" id="mode">—</div></div>
-        </div>
+        <div class="sentence" id="sentence">—</div>
       </div>
 
-      <!-- Chart + Table -->
-      <div class="grid" style="margin-top:14px">
-        <div class="card">
-          <div class="legend" style="margin-bottom:8px">
-            <span class="swatch"></span> highlighted &nbsp;&nbsp;
-            <span class="swatch swatch-dim"></span> other
-          </div>
-          <canvas id="hist" width="900" height="320" aria-label="Distribution chart"></canvas>
-          <div class="muted" style="margin-top:6px">X-axis = number of successes drawn (X). Y-axis = probability. Bars at/above x are highlighted for “≥ x”.</div>
-        </div>
+      <!-- Small facts -->
+      <div class="row" style="margin-top:12px">
+        <div class="stat"><span class="cap">Valid X range</span><div id="xRange"><span class="muted">—</span></div></div>
+        <div class="stat"><span class="cap">E[X]</span><div id="mean"><span class="muted">—</span></div></div>
+        <div class="stat"><span class="cap">SD[X]</span><div id="sd"><span class="muted">—</span></div></div>
+      </div>
 
-        <div class="card">
-          <h3 style="margin-bottom:6px">Distribution table</h3>
+      <!-- Optional details -->
+      <div class="section">
+        <details>
+          <summary>Show full distribution table (optional)</summary>
           <table class="table" id="distTable">
             <thead>
               <tr>
-                <th>X</th>
-                <th class="numcell">P(X = x)</th>
-                <th class="numcell">P(X ≥ x)</th>
+                <th>X (hits)</th>
+                <th class="num">P(X = x)</th>
+                <th class="num">P(X ≥ x)</th>
               </tr>
             </thead>
             <tbody></tbody>
           </table>
-        </div>
-      </div>
-
-      <!-- Explainer -->
-      <div class="section">
-        <details>
-          <summary>How it works (hypergeometric)</summary>
-          <p style="margin-top:8px" class="muted">
-            When drawing <code>n</code> cards without replacement from a population of <code>N</code> with <code>K</code> “success” cards (e.g., Aces),
-            the probability of exactly <code>x</code> successes is:
-          </p>
-          <p class="muted"><code>P(X=x) = C(K, x) · C(N−K, n−x) / C(N, n)</code></p>
-          <p class="muted">Expected successes: <code>E[X] = n · (K/N)</code>. Variance: <code>n·(K/N)·(1−K/N)·( (N−n)/(N−1) )</code>.
-            We compute everything exactly (no simulation), using log-combinations for numeric stability.</p>
         </details>
       </div>
     </div>
@@ -190,34 +160,32 @@
     const KEl = document.getElementById('K');
     const nEl = document.getElementById('n');
     const xEl = document.getElementById('x');
-    const mainProbEl = document.getElementById('mainProb');
-    const probLabelEl = document.getElementById('probLabel');
-    const xLabelEl = document.getElementById('xLabel');
+    const modeRadios = [...document.querySelectorAll('input[name="mode"]')];
+
+    const answerEl = document.getElementById('answer');
+    const sentenceEl = document.getElementById('sentence');
     const xRangeEl = document.getElementById('xRange');
     const meanEl = document.getElementById('mean');
     const sdEl = document.getElementById('sd');
-    const modeEl = document.getElementById('mode');
     const tableBody = document.querySelector('#distTable tbody');
-    const canvas = document.getElementById('hist');
-    const ctx = canvas.getContext('2d');
-    const modeRadios = [...document.querySelectorAll('input[name="mode"]')];
 
-    // Preset chips
+    // Presets
     document.querySelectorAll('.chip').forEach(chip=>{
       chip.addEventListener('click', ()=>{
         NEl.value = chip.dataset.n;
         KEl.value = chip.dataset.k;
         nEl.value = chip.dataset.d;
         xEl.value = chip.dataset.x;
-        recomputeAndRender();
+        modeRadios.find(r=>r.value==='ge').checked = true;
+        recompute();
       });
     });
 
-    // Utility
+    // Helpers
     const clamp = (v,min,max)=> Math.max(min, Math.min(max, v));
-    const fmtPct = (p)=> (p*100).toFixed(2) + '%';
+    const pct = (p)=> (p*100).toFixed(2) + '%';
 
-    // Log-gamma (Lanczos approximation) for stable log-comb
+    // Stable logGamma (Lanczos)
     function logGamma(z){
       const p = [
         0.99999999999980993, 676.5203681218851, -1259.1392167224028,
@@ -239,198 +207,110 @@
       return logGamma(n+1) - logGamma(k+1) - logGamma(n-k+1);
     }
     function hypergeomPmf(N,K,n,x){
-      if(x<0) return 0;
-      if(x>n || x>K) return 0;
+      if(x<0 || x>n || x>K) return 0;
       if(n>N || K>N) return 0;
-      if(n<0 || N<=0) return 0;
-      // Also must have (n-x) <= (N-K)
-      if(n - x > N - K) return 0;
+      if(n - x > N - K) return 0; // can’t draw more non-targets than exist
       const logp = logChoose(K,x) + logChoose(N-K, n-x) - logChoose(N,n);
       return Math.exp(logp);
     }
-
     function validRange(N,K,n){
       const xmin = Math.max(0, n - (N - K));
       const xmax = Math.min(n, K);
       return { xmin, xmax };
     }
-
     function stats(N,K,n){
       const mean = n * (K/N);
-      const varX = n * (K/N) * (1 - K/N) * ((N - n) / Math.max(1, (N - 1)));
-      return { mean, sd: Math.sqrt(varX) };
+      const variance = n * (K/N) * (1 - K/N) * ((N - n) / Math.max(1, (N - 1)));
+      return { mean, sd: Math.sqrt(variance) };
     }
-
     function buildPmf(N,K,n){
       const { xmin, xmax } = validRange(N,K,n);
       const pmf = [];
       let total = 0;
       for(let x=xmin; x<=xmax; x++){
         const p = hypergeomPmf(N,K,n,x);
-        pmf.push(p);
-        total += p;
+        pmf.push(p); total += p;
       }
-      // Normalize tiny numerical drift
-      if(total>0){
-        for(let i=0;i<pmf.length;i++) pmf[i] /= total;
-      }
+      if(total>0){ for(let i=0;i<pmf.length;i++) pmf[i] /= total; } // normalize tiny drift
       return { pmf, xmin, xmax };
     }
-
-    function buildTail(pmf){
-      // tail[i] = P(X >= (xmin+i))
-      const tail = new Array(pmf.pmf.length).fill(0);
+    function buildTail(pmfObj){
+      const { pmf } = pmfObj;
+      const tail = new Array(pmf.length).fill(0);
       let acc = 0;
-      for(let i=pmf.pmf.length-1;i>=0;i--){
-        acc += pmf.pmf[i];
-        tail[i] = acc;
-      }
-      return tail;
+      for(let i=pmf.length-1;i>=0;i--){ acc += pmf[i]; tail[i] = acc; }
+      return tail; // tail[i] = P(X >= xmin+i)
     }
 
-    // Rendering
-    function renderStats(N,K,n,x, mode, pmfObj){
-      const { xmin, xmax } = pmfObj;
-      const { mean, sd } = stats(N,K,n);
-
-      // Clamp x to valid range for display
+    function renderMain(N,K,n,x,mode, pmfObj){
+      const { xmin, xmax, pmf } = pmfObj;
+      // clamp x to valid range
       const xc = clamp(x, xmin, xmax);
+      xEl.value = xc; xEl.min = xmin; xEl.max = xmax;
+
+      // compute main prob
       const idx = xc - xmin;
       const tail = buildTail(pmfObj);
-      const pEq = (idx>=0 && idx<pmfObj.pmf.length) ? pmfObj.pmf[idx] : 0;
-      const pGe = (idx>=0 && idx<pmfObj.pmf.length) ? tail[idx] : (xc<=xmin ? 1 : 0);
+      const pEq = (idx>=0 && idx<pmf.length) ? pmf[idx] : 0;
+      const pGe = (idx>=0 && idx<pmf.length) ? tail[idx] : (xc<=xmin ? 1 : 0);
+      const p = (mode==='ge') ? pGe : pEq;
 
-      probLabelEl.textContent = (mode==='ge') ? 'X ≥ x' : 'X = x';
-      mainProbEl.textContent = (mode==='ge') ? fmtPct(pGe) : fmtPct(pEq);
-      xLabelEl.textContent = String(xc);
-      xRangeEl.textContent = `${xmin}–${xmax}`;
+      answerEl.textContent = pct(p);
+      const flavor = (mode==='ge') ? `at least ${xc}` : `exactly ${xc}`;
+      sentenceEl.innerHTML = `Chance of <strong>${flavor}</strong> target card(s) in <strong>${n}</strong> draw(s), from a deck of <strong>${N}</strong> with <strong>${K}</strong> targets.`;
+
+      const { mean, sd } = stats(N,K,n);
+      xRangeEl.textContent = `${xmin} to ${xmax}`;
       meanEl.textContent = mean.toFixed(2);
       sdEl.textContent = sd.toFixed(2);
-
-      // Mode (argmax of pmf)
-      let bestI = 0, bestP = -1;
-      for(let i=0;i<pmfObj.pmf.length;i++){
-        if(pmfObj.pmf[i] > bestP){ bestP = pmfObj.pmf[i]; bestI = i; }
-      }
-      modeEl.textContent = String(pmfObj.xmin + bestI);
     }
 
-    function renderTable(N,K,n,x, mode, pmfObj){
-      tableBody.innerHTML = '';
+    function renderTable(N,K,n, mode, pmfObj){
       const { xmin, xmax, pmf } = pmfObj;
       const tail = buildTail(pmfObj);
-
+      tableBody.innerHTML = '';
       for(let i=0;i<pmf.length;i++){
         const X = xmin + i;
-        const pEq = pmf[i];
-        const pGe = tail[i];
         const tr = document.createElement('tr');
-        const highlight = (mode==='ge') ? (X >= x) : (X === x);
-        if(highlight) tr.classList.add('hi');
         tr.innerHTML = `
           <td>${X}</td>
-          <td class="numcell">${fmtPct(pEq)}</td>
-          <td class="numcell">${fmtPct(pGe)}</td>
+          <td class="num">${(pmf[i]*100).toFixed(2)}%</td>
+          <td class="num">${(tail[i]*100).toFixed(2)}%</td>
         `;
         tableBody.appendChild(tr);
       }
     }
 
-    function renderChart(N,K,n,x, mode, pmfObj){
-      const { xmin, xmax, pmf } = pmfObj;
-
-      // Clear
-      ctx.clearRect(0,0,canvas.width,canvas.height);
-
-      // Padding
-      const padL = 40, padR = 12, padT = 12, padB = 32;
-      const w = canvas.width - padL - padR;
-      const h = canvas.height - padT - padB;
-
-      // Data
-      let maxP = 0;
-      for(const p of pmf) maxP = Math.max(maxP, p);
-
-      // Axes
-      ctx.strokeStyle = '#2a2d36';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(padL, padT);
-      ctx.lineTo(padL, padT+h);
-      ctx.lineTo(padL+w, padT+h);
-      ctx.stroke();
-
-      // Y ticks
-      ctx.fillStyle = '#8b8f99';
-      ctx.font = '12px system-ui, -apple-system, Segoe UI, Roboto';
-      ctx.fillText('0', 10, padT+h);
-      ctx.fillText((maxP*100).toFixed(1)+'%', 8, padT+10);
-
-      // Bars
-      const nBars = pmf.length;
-      const gap = 2;
-      const barW = Math.max(1, Math.floor((w - gap*(nBars-1)) / nBars));
-      let xPix = padL;
-
-      for(let i=0;i<nBars;i++){
-        const p = pmf[i];
-        const bh = Math.round((p / maxP) * (h-2));
-        const X = xmin + i;
-        const highlighted = (mode==='ge') ? (X >= x) : (X === x);
-        ctx.fillStyle = highlighted ? 'rgba(91,140,255,0.95)' : 'rgba(91,140,255,0.35)';
-        ctx.fillRect(xPix, padT + (h - bh), barW, bh);
-        xPix += barW + gap;
-      }
-
-      // X labels (sparse)
-      ctx.fillStyle = '#8b8f99';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'top';
-      const step = Math.max(1, Math.ceil(nBars / 10));
-      xPix = padL + barW/2;
-      for(let i=0;i<nBars;i+=step){
-        const X = xmin + i;
-        ctx.fillText(String(X), xPix + i*(barW+gap), padT+h+6);
-      }
-    }
-
-    function recomputeAndRender(){
-      // Read & sanitize inputs
-      const Nraw = parseInt(NEl.value||52,10);
-      const Kraw = parseInt(KEl.value||4,10);
-      const nraw = parseInt(nEl.value||5,10);
-      let N = clamp(Nraw, 1, 100000);
-      let K = clamp(Kraw, 0, N);
-      let n = clamp(nraw, 0, N);
+    function recompute(){
+      // read inputs & sanitize
+      const N = clamp(parseInt(NEl.value||52,10), 1, 100000);
+      const K = clamp(parseInt(KEl.value||4,10), 0, N);
+      const n = clamp(parseInt(nEl.value||5,10), 0, N);
       NEl.value = N; KEl.value = K; nEl.value = n;
 
       const { xmin, xmax } = validRange(N,K,n);
-
-      // Sync x bounds
-      const xraw = parseInt(xEl.value||1,10);
-      let x = clamp(xraw, xmin, xmax);
+      const xRaw = parseInt(xEl.value||1,10);
+      const x = clamp(xRaw, xmin, xmax);
       xEl.min = xmin; xEl.max = xmax; xEl.value = x;
 
       const mode = modeRadios.find(r=>r.checked).value;
 
       const pmfObj = buildPmf(N,K,n);
-      renderStats(N,K,n,x, mode, pmfObj);
-      renderTable(N,K,n,x, mode, pmfObj);
-      renderChart(N,K,n,x, mode, pmfObj);
+      renderMain(N,K,n,x,mode, pmfObj);
+      renderTable(N,K,n,mode, pmfObj);
     }
 
     // Events
-    [NEl,KEl,nEl,xEl].forEach(el => el.addEventListener('input', recomputeAndRender));
-    modeRadios.forEach(r => r.addEventListener('change', recomputeAndRender));
+    [NEl,KEl,nEl,xEl].forEach(el => el.addEventListener('input', recompute));
+    modeRadios.forEach(r => r.addEventListener('change', recompute));
     document.getElementById('reset').addEventListener('click', ()=>{
       NEl.value = 52; KEl.value = 4; nEl.value = 5; xEl.value = 1;
       modeRadios.find(r=>r.value==='ge').checked = true;
-      recomputeAndRender();
+      recompute();
     });
 
     // Boot
-    recomputeAndRender();
+    recompute();
   </script>
 </body>
 </html>
-
