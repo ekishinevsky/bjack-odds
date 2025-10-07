@@ -1,1 +1,389 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <meta name="color-scheme" content="dark" />
+  <title>Parlay / Accumulator EV — Eli Kishinevsky</title>
+  <meta name="description" content="Enter leg probabilities or American odds to see parlay win chance, payout, EV, bust chance, and break-even." />
+
+  <!-- GA4 (optional) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-BWPMBYVSD5"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+    gtag('config', 'G-BWPMBYVSD5');
+  </script>
+
+  <style>
+    :root{
+      --bg:#0b0b0f; --card:#121217; --text:#f2f3f5; --muted:#a6a8ad;
+      --accent:#5b8cff; --border:#22242b; --radius:14px; --good:#7aff9a; --bad:#ff7a7a;
+    }
+    *{box-sizing:border-box}
+    html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:16px/1.55 Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
+    a{color:var(--accent);text-decoration:none}
+    .container{max-width:980px;margin:0 auto;padding:22px}
+    .nav{position:sticky;top:0;background:linear-gradient(180deg,#0b0b0f,#0b0b0fd0);backdrop-filter:saturate(130%) blur(6px);border-bottom:1px solid var(--border);z-index:5}
+    .nav-inner{display:flex;justify-content:space-between;align-items:center;gap:14px}
+    .brand{display:flex;align-items:center;gap:10px;color:var(--text);font-weight:800;text-decoration:none}
+    .dot{width:10px;height:10px;border-radius:999px;background:linear-gradient(135deg,var(--accent),#8ea8ff);box-shadow:0 0 14px rgba(91,140,255,.66)}
+    nav a{color:var(--muted);margin-left:14px}
+    nav a.active, nav a:hover{color:var(--text)}
+    h1,h2,h3{margin:0 0 8px}
+    .section{padding:24px 0}
+    .muted{color:var(--muted)}
+    .cap{font-variant:all-small-caps;letter-spacing:.5px;color:var(--muted)}
+    .card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px}
+    .row{display:flex;gap:12px;flex-wrap:wrap;align-items:center}
+    .input, .select{
+      border:1px solid var(--border);background:linear-gradient(180deg,#121217,#0c0c10);
+      color:var(--text);border-radius:10px;padding:8px 10px;min-width:120px
+    }
+    .btn{border:1px solid var(--border);background:#101015;color:var(--text);border-radius:10px;padding:8px 10px;cursor:pointer}
+    .btn.small{padding:6px 10px;font-size:14px}
+    .btn.ghost{background:transparent}
+    .headline{display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:14px}
+    .big{font-size:32px;font-weight:900;letter-spacing:.3px}
+    .good{color:var(--good)} .bad{color:var(--bad)}
+    .stats{display:grid;grid-template-columns:repeat(5,minmax(140px,1fr));gap:10px}
+    .stat{border:1px solid var(--border);border-radius:12px;padding:8px 10px;background:#101015}
+    .num{font-weight:800}
+    .table{width:100%;border-collapse:collapse;margin-top:8px}
+    .table th,.table td{padding:8px;border-bottom:1px solid var(--border);text-align:left}
+    .table th{color:var(--muted);font-weight:600}
+    .numcell{text-align:right}
+    .leg{display:grid;grid-template-columns:24px 1fr 1fr 1fr auto;gap:10px;align-items:center;margin-top:8px}
+    .leg .idx{color:#8b8f99;text-align:center}
+    .chips{display:flex;gap:10px;flex-wrap:wrap;margin:8px 0 12px}
+    .chip{border:1px solid var(--border);border-radius:999px;padding:6px 10px;background:#101015;cursor:pointer}
+    details{border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:#0e0e14}
+    details summary{cursor:pointer;color:var(--muted)}
+    footer{border-top:1px solid var(--border);margin-top:24px}
+    .radio{display:flex;gap:12px;align-items:center}
+  </style>
+</head>
+<body>
+  <!-- NAV -->
+  <div class="nav">
+    <div class="container nav-inner">
+      <a class="brand" href="index.html"><span class="dot"></span><span>Probability Tools</span></a>
+      <nav>
+        <a href="index.html">All Tools</a>
+        <a class="active" href="parlay-ev.html">Parlay</a>
+        <a href="https://ekishinevsky.github.io/" target="_blank" rel="noopener">Main Site</a>
+      </nav>
+    </div>
+  </div>
+
+  <section class="section">
+    <div class="container">
+      <h2>Parlay / Accumulator EV</h2>
+      <p class="muted">Step 1: choose how to enter legs. Step 2: add legs. Step 3: set stake. The calculator shows win chance, payout, EV, and bust chance.</p>
+
+      <!-- Presets -->
+      <div class="chips">
+        <span class="chip" data-mode="us" data-legs="-110,-110,-150" data-stake="100">$100 on −110 / −110 / −150</span>
+        <span class="chip" data-mode="p" data-legs="55,55,60" data-stake="100">$100 with 55%, 55%, 60%</span>
+        <span class="chip" data-mode="us" data-legs="+120,+220" data-stake="50">$50 on +120 / +220</span>
+      </div>
+
+      <!-- Controls -->
+      <div class="card">
+        <div class="row" style="margin-bottom:10px">
+          <label>Enter legs by
+            <div class="radio">
+              <label><input type="radio" name="mode" value="p" checked> Probability (%)</label>
+              <label><input type="radio" name="mode" value="us"> American odds (e.g., −110, +150)</label>
+            </div>
+          </label>
+          <label>Stake ($)
+            <input id="stake" class="input" type="number" min="0" step="1" value="100" />
+          </label>
+          <button class="btn small" id="addLeg">+ Add leg</button>
+          <button class="btn small ghost" id="clearLegs">Clear legs</button>
+        </div>
+
+        <!-- Leg rows -->
+        <div id="legs"></div>
+
+        <div class="muted" style="margin-top:8px">
+          EV assumes independent legs. In <strong>odds</strong> mode, EV uses implied win % from the odds. For your own beliefs, switch to <strong>probability</strong> mode.
+        </div>
+      </div>
+
+      <!-- Big headline -->
+      <div class="headline" style="margin-top:14px">
+        <div>
+          <div class="cap">Parlay win chance</div>
+          <div id="pwin" class="big good">—</div>
+        </div>
+        <div>
+          <div class="cap">Return (payout)</div>
+          <div id="payout" class="big">—</div>
+        </div>
+        <div>
+          <div class="cap">Profit on win</div>
+          <div id="profit" class="big">—</div>
+        </div>
+        <div>
+          <div class="cap">Expected value (EV)</div>
+          <div id="ev" class="big">—</div>
+        </div>
+        <div>
+          <div class="cap">Bust chance</div>
+          <div id="pbust" class="big bad">—</div>
+        </div>
+      </div>
+
+      <!-- Secondary stats -->
+      <div class="stats" style="margin-top:10px">
+        <div class="stat"><span class="cap">Combined decimal odds</span><div class="num" id="decOdds">—</div></div>
+        <div class="stat"><span class="cap">Break-even parlay win %</span><div class="num" id="breakeven">—</div></div>
+        <div class="stat"><span class="cap">Break-even per-leg win % <span class="muted">(if equal)</span></span><div class="num" id="breakevenPerLeg">—</div></div>
+        <div class="stat"><span class="cap"># of legs</span><div class="num" id="nlegs">—</div></div>
+        <div class="stat"><span class="cap">Assumed independence</span><div class="num">Yes</div></div>
+      </div>
+
+      <div class="section">
+        <details>
+          <summary>Show leg breakdown</summary>
+          <table class="table" id="legTable">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Entered</th>
+                <th class="numcell">Win % (used)</th>
+                <th class="numcell">Decimal odds</th>
+              </tr>
+            </thead>
+            <tbody></tbody>
+          </table>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <footer class="section">
+    <div class="container">
+      <div class="muted">© <span id="year"></span> Eli Kishinevsky</div>
+    </div>
+  </footer>
+
+  <script>
+    // Footer year
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Elements
+    const legsEl = document.getElementById('legs');
+    const stakeEl = document.getElementById('stake');
+    const addLegBtn = document.getElementById('addLeg');
+    const clearLegsBtn = document.getElementById('clearLegs');
+    const modeRadios = [...document.querySelectorAll('input[name="mode"]')];
+
+    const pwinEl = document.getElementById('pwin');
+    const pbustEl = document.getElementById('pbust');
+    const payoutEl = document.getElementById('payout');
+    const profitEl = document.getElementById('profit');
+    const evEl = document.getElementById('ev');
+    const decOddsEl = document.getElementById('decOdds');
+    const breakevenEl = document.getElementById('breakeven');
+    const breakevenPerLegEl = document.getElementById('breakevenPerLeg');
+    const nlegsEl = document.getElementById('nlegs');
+    const legTableBody = document.querySelector('#legTable tbody');
+
+    // Utils
+    const money = x => '$' + Number(x).toLocaleString(undefined,{maximumFractionDigits:2});
+    const pct   = x => (x*100).toFixed(2) + '%';
+    const clamp = (v,min,max)=> Math.max(min, Math.min(max, v));
+
+    // American odds -> decimal odds
+    function usToDecimal(us){
+      if (us === 0 || !isFinite(us)) return NaN;
+      return us > 0 ? (1 + us/100) : (1 + 100/Math.abs(us));
+    }
+    // American odds -> implied win probability (no vig removal)
+    function usToProb(us){
+      if (us === 0 || !isFinite(us)) return NaN;
+      const a = Math.abs(us);
+      return us > 0 ? (100/(us+100)) : (a/(a+100));
+    }
+
+    // Create a leg row
+    function makeLegRow(index=1, mode='p', value=''){
+      const row = document.createElement('div');
+      row.className = 'leg';
+      row.innerHTML = `
+        <div class="idx">${index}</div>
+        <div>
+          <label class="cap">${mode==='p' ? 'Win %' : 'American odds'}</label>
+          <input class="input leg-input" type="text" placeholder="${mode==='p' ? 'e.g., 55' : 'e.g., -110 or +150'}" value="${value}">
+        </div>
+        <div>
+          <label class="cap">Used win %</label>
+          <input class="input usedp" type="text" value="—" readonly>
+        </div>
+        <div>
+          <label class="cap">Decimal odds</label>
+          <input class="input usedd" type="text" value="—" readonly>
+        </div>
+        <div><button class="btn small ghost remove">Remove</button></div>
+      `;
+      // Wire remove
+      row.querySelector('.remove').addEventListener('click', ()=>{ row.remove(); renumber(); recompute(); });
+      // Wire input
+      row.querySelector('.leg-input').addEventListener('input', recompute);
+      return row;
+    }
+
+    function renumber(){
+      [...legsEl.children].forEach((row,i)=> row.querySelector('.idx').textContent = i+1);
+    }
+
+    function currentMode(){ return modeRadios.find(r=>r.checked).value; }
+
+    function setModeLabels(){
+      const mode = currentMode();
+      [...legsEl.querySelectorAll('.leg')].forEach(row=>{
+        row.querySelector('label.cap').textContent = (mode==='p') ? 'Win %' : 'American odds';
+        const input = row.querySelector('.leg-input');
+        input.placeholder = (mode==='p') ? 'e.g., 55' : 'e.g., -110 or +150';
+      });
+    }
+
+    function parseLegs(){
+      const mode = currentMode();
+      const rows = [...legsEl.querySelectorAll('.leg')];
+      const legs = [];
+      rows.forEach(row=>{
+        const raw = row.querySelector('.leg-input').value.trim();
+        let p = NaN, d = NaN;
+
+        if(mode === 'p'){
+          const val = Number(raw);
+          if(!isNaN(val)){
+            p = clamp(val/100, 0, 1);
+            // if you only enter p, set decimal odds to "fair" 1/p (for info)
+            d = (p>0) ? (1/p) : NaN;
+          }
+        } else { // 'us'
+          if(raw){
+            let us = Number(raw.replace(/[^\d+-]/g,'')); // keep sign + digits
+            if(!isNaN(us) && us !== 0){
+              d = usToDecimal(us);
+              p = usToProb(us);
+            }
+          }
+        }
+
+        legs.push({raw, p, d, row});
+      });
+      return legs;
+    }
+
+    function recompute(){
+      const legs = parseLegs().filter(x => !isNaN(x.p) && x.p>0 && !isNaN(x.d) && x.d>0);
+      const n = legs.length;
+      const stake = Math.max(0, Number(stakeEl.value)||0);
+
+      // Update per-leg readouts
+      legs.forEach(L=>{
+        L.row.querySelector('.usedp').value = isFinite(L.p) ? pct(L.p) : '—';
+        L.row.querySelector('.usedd').value = isFinite(L.d) ? L.d.toFixed(3) : '—';
+      });
+      // For any invalid leg rows, clear readouts
+      [...legsEl.querySelectorAll('.leg')].forEach(row=>{
+        if(!legs.find(L=>L.row===row)){
+          row.querySelector('.usedp').value = '—';
+          row.querySelector('.usedd').value = '—';
+        }
+      });
+
+      // If no valid legs, blank stats
+      if(n === 0 || stake === 0){
+        pwinEl.textContent = '—'; payoutEl.textContent='—'; profitEl.textContent='—';
+        evEl.textContent='—'; pbustEl.textContent='—'; decOddsEl.textContent='—';
+        breakevenEl.textContent='—'; breakevenPerLegEl.textContent='—'; nlegsEl.textContent=String(n);
+        legTableBody.innerHTML = '';
+        return;
+      }
+
+      // Combined
+      const Pwin = legs.reduce((acc,L)=> acc * L.p, 1);
+      const dec = legs.reduce((acc,L)=> acc * L.d, 1); // decimal odds multiply
+      const payout = stake * dec;         // return incl. stake
+      const profit = stake * (dec - 1);   // profit if win
+      const EV = Pwin * payout - stake;   // expected value (per stake)
+      const Pbust = 1 - Pwin;
+      const Pbe = 1 / dec;                // break-even P(win)
+      const PbeLeg = Math.pow(Pbe, 1/n);  // equal-leg break-even
+
+      // Display
+      pwinEl.textContent = pct(Pwin);
+      pbustEl.textContent = pct(Pbust);
+      payoutEl.textContent = money(payout);
+      profitEl.textContent = money(profit);
+      evEl.textContent = money(EV);
+      evEl.className = 'big ' + (EV >= 0 ? 'good' : 'bad');
+      decOddsEl.textContent = dec.toFixed(3);
+      breakevenEl.textContent = pct(Pbe);
+      breakevenPerLegEl.textContent = pct(PbeLeg);
+      nlegsEl.textContent = String(n);
+
+      // Table
+      legTableBody.innerHTML = '';
+      legs.forEach((L,i)=>{
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${i+1}</td>
+          <td>${L.raw || (currentMode()==='p' ? (L.p*100).toFixed(2)+'%' : '—')}</td>
+          <td class="numcell">${pct(L.p)}</td>
+          <td class="numcell">${L.d.toFixed(3)}</td>
+        `;
+        legTableBody.appendChild(tr);
+      });
+    }
+
+    // Add/clear legs
+    function addLeg(prefill=''){
+      const mode = currentMode();
+      const row = makeLegRow(legsEl.children.length+1, mode, prefill);
+      legsEl.appendChild(row);
+    }
+
+    addLegBtn.addEventListener('click', ()=>{ addLeg(''); recompute(); });
+    clearLegsBtn.addEventListener('click', ()=>{ legsEl.innerHTML=''; recompute(); });
+    modeRadios.forEach(r => r.addEventListener('change', ()=>{
+      setModeLabels();
+      // Convert existing inputs to blanks to avoid mixing units
+      [...legsEl.querySelectorAll('.leg-input')].forEach(inp=> inp.value='');
+      recompute();
+    }));
+    stakeEl.addEventListener('input', recompute);
+
+    // Preset chips
+    document.querySelectorAll('.chip').forEach(chip=>{
+      chip.addEventListener('click', ()=>{
+        const mode = chip.dataset.mode; // 'us' or 'p'
+        modeRadios.find(r=>r.value===mode).checked = true;
+        setModeLabels();
+        legsEl.innerHTML = '';
+        const legs = chip.dataset.legs.split(',');
+        legs.forEach(v=> addLeg(v.trim()));
+        stakeEl.value = chip.dataset.stake || '100';
+        recompute();
+      });
+    });
+
+    // Boot: start with 3 leg probability example
+    function boot(){
+      // default: probability mode with 3 legs
+      addLeg('55'); addLeg('55'); addLeg('60');
+      recompute();
+    }
+    boot();
+  </script>
+</body>
+</html>
 
