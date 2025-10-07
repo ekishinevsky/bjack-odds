@@ -5,7 +5,7 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="color-scheme" content="dark" />
   <title>Gambler’s Ruin — Eli Kishinevsky</title>
-  <meta name="description" content="Given bankroll, goal, bet size, and per-bet win probability, see probability of ruin, chance to reach the goal, and expected number of bets." />
+  <meta name="description" content="Bankroll vs goal with adjustable win/loss amounts and per-bet win chance. Shows ruin chance, chance to hit goal, and expected number of bets." />
 
   <!-- GA4 (optional) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-BWPMBYVSD5"></script>
@@ -55,6 +55,7 @@
     details{border:1px solid var(--border);border-radius:12px;padding:10px 12px;background:#0e0e14}
     details summary{cursor:pointer;color:var(--muted)}
     footer{border-top:1px solid var(--border);margin-top:24px}
+    .warn{color:#ffcd7a}
   </style>
 </head>
 <body>
@@ -72,34 +73,38 @@
 
   <section class="section">
     <div class="container">
-      <h2>Gambler’s Ruin</h2>
-      <p class="muted">Enter your bankroll, goal, constant bet size, and per-bet win chance. We treat <strong>one full bet</strong> as one step. Results are exact for this model (independent bets, no table limits, constant bet).</p>
+      <h2>Gambler’s Ruin (with Risk–Reward)</h2>
+      <p class="muted">Per bet you <strong>win +W</strong> with probability <strong>p</strong> and <strong>lose −L</strong> with probability <strong>1−p</strong>. We track between $0 and your goal.</p>
 
       <!-- Presets -->
       <div class="chips">
-        <span class="chip" data-br="100" data-goal="200" data-bet="10" data-p="50">Fair (p=50%) · $100 → $200 · $10 bets</span>
-        <span class="chip" data-br="100" data-goal="200" data-bet="10" data-p="55">Edge (p=55%) · $100 → $200 · $10 bets</span>
-        <span class="chip" data-br="200" data-goal="400" data-bet="25" data-p="48">Under edge (p=48%) · $200 → $400 · $25 bets</span>
+        <span class="chip" data-br="100" data-goal="200" data-win="10" data-loss="10" data-p="50">Even bet: $100→$200, +$10 / −$10, p=50%</span>
+        <span class="chip" data-br="100" data-goal="200" data-win="20" data-loss="10" data-p="45">2:1 reward: +$20 / −$10, p=45%</span>
+        <span class="chip" data-br="100" data-goal="200" data-win="10" data-loss="20" data-p="60">1:2 reward: +$10 / −$20, p=60%</span>
       </div>
 
       <!-- Inputs -->
       <div class="card">
         <div class="row">
           <label>Bankroll ($)
-            <input id="bankroll" class="input" type="number" min="0" step="1" value="100" />
+            <input id="bankroll" class="input" type="number" min="0" step="0.01" value="100" />
           </label>
           <label>Goal ($)
-            <input id="goal" class="input" type="number" min="0" step="1" value="200" />
+            <input id="goal" class="input" type="number" min="0" step="0.01" value="200" />
           </label>
-          <label>Bet size ($) <span class="muted">(constant)</span>
-            <input id="bet" class="input" type="number" min="1" step="1" value="10" />
+          <label>Win amount per bet (+W, $)
+            <input id="winAmt" class="input" type="number" min="0.01" step="0.01" value="10" />
           </label>
-          <label>Win chance per bet (%)
+          <label>Loss amount per bet (−L, $)
+            <input id="lossAmt" class="input" type="number" min="0.01" step="0.01" value="10" />
+          </label>
+          <label>Win chance per bet (p, %)
             <input id="p" class="input" type="number" min="0" max="100" step="0.1" value="50" />
           </label>
           <button class="btn" id="reset">Reset</button>
         </div>
         <div class="small" id="unitNote"></div>
+        <div class="small" id="coarsenNote"></div>
       </div>
 
       <!-- Main results -->
@@ -121,43 +126,41 @@
       <!-- Secondary stats -->
       <div class="stats" style="margin-top:12px">
         <div class="box">
-          <div class="cap">Steps used (bets)</div>
+          <div class="cap">Grid steps</div>
           <div id="steps" class="big">—</div>
-          <div class="small">Start = i, Goal = N (i bets from $bankroll; N bets to goal)</div>
+          <div class="small">Up step = +W, Down step = −L (mapped to integers via cents & gcd)</div>
         </div>
         <div class="box">
-          <div class="cap">Per-bet edge</div>
-          <div id="edge" class="big">—</div>
-          <div class="small">p − (1−p)</div>
+          <div class="cap">Per-bet $ edge</div>
+          <div id="edgeMoney" class="big">—</div>
+          <div class="small">p·W − (1−p)·L</div>
         </div>
         <div class="box">
-          <div class="cap">Fair-game check</div>
-          <div id="fair" class="big">—</div>
-          <div class="small">p = 50% ⇒ ruin = 1 − i/N</div>
+          <div class="cap">Directional drift (steps)</div>
+          <div id="drift" class="big">—</div>
+          <div class="small">p·u − (1−p)·v (u,v are step counts)</div>
         </div>
         <div class="box">
           <div class="cap">Model assumptions</div>
-          <div class="small">Independent bets, constant bet size, no limits; absorb at $0 or goal.</div>
+          <div class="small">Independent bets; constant W/L; stop at $0 or goal.</div>
         </div>
       </div>
 
       <!-- Explainer -->
       <div class="section">
         <details>
-          <summary>How it’s calculated (exact formulas)</summary>
+          <summary>How the probabilities are computed</summary>
           <p class="muted" style="margin-top:6px">
-            Let <strong>i</strong> = ⌊bankroll / bet⌋ (whole bets you can afford) and <strong>N</strong> = ⌈goal / bet⌉ (whole bets to reach goal).
-            Let <strong>p</strong> be the per-bet win probability and <strong>q</strong>=1−p. Then:
+            We convert dollars to cents and reduce by <em>gcd(W,L)</em> so each bet is an “up <strong>u</strong> steps / down <strong>v</strong> steps” random walk
+            between 0 and <strong>N</strong>=ceil(goal/unit). The chance to hit the goal from step <strong>i</strong>=floor(bankroll/unit) is:
           </p>
           <ul class="muted">
-            <li>Goal probability (hit N before 0):
-              <br><code>p_goal = i/N</code> if p = 0.5; otherwise <code>p_goal = (1 − r^i) / (1 − r^N)</code> where <code>r = q/p</code>.</li>
-            <li>Ruin probability: <code>p_ruin = 1 − p_goal</code>.</li>
-            <li>Expected bets to absorption:
-              <br><code>E[T] = i(N−i)</code> if p = 0.5;
-              otherwise <code>E[T] = i/(q−p) − (N/(q−p))·(1 − r^i)/(1 − r^N)</code>.</li>
+            <li>If the nontrivial root <code>r≠1</code> of <code>p·r^u + (1−p)·r^{-v} = 1</code> exists, then
+              <code>p_goal = (1 − r^i)/(1 − r^N)</code>, and <code>p_ruin = 1 − p_goal</code>.</li>
+            <li>If effectively <code>r≈1</code> (zero drift), we use the limit <code>p_goal = i/N</code>.</li>
           </ul>
-          <p class="muted">We round i down and N up so the math matches actual whole bets. If i ≥ N you’re already at/above the goal (p_ruin=0).</p>
+          <p class="muted">Expected #bets is solved from the linear system <code>E[i] = 1 + p·E[i+u] + (1−p)·E[i−v]</code> with <code>E[0]=E[N]=0</code>
+          (computed when the state space is modest; otherwise we omit it).</p>
         </details>
       </div>
     </div>
@@ -176,109 +179,225 @@
     // Elements
     const brEl = document.getElementById('bankroll');
     const goalEl = document.getElementById('goal');
-    const betEl = document.getElementById('bet');
+    const winEl = document.getElementById('winAmt');
+    const lossEl = document.getElementById('lossAmt');
     const pEl = document.getElementById('p');
     const resetBtn = document.getElementById('reset');
 
     const unitNoteEl = document.getElementById('unitNote');
+    const coarsenNoteEl = document.getElementById('coarsenNote');
     const pruinEl = document.getElementById('pruin');
     const pgoalEl = document.getElementById('pgoal');
     const etimeEl = document.getElementById('etime');
     const stepsEl = document.getElementById('steps');
-    const edgeEl = document.getElementById('edge');
-    const fairEl = document.getElementById('fair');
+    const edgeMoneyEl = document.getElementById('edgeMoney');
+    const driftEl = document.getElementById('drift');
 
-    const chips = document.querySelectorAll('.chip');
-    chips.forEach(c => c.addEventListener('click', () => {
+    // Presets
+    document.querySelectorAll('.chip').forEach(c => c.addEventListener('click', () => {
       brEl.value = c.dataset.br;
       goalEl.value = c.dataset.goal;
-      betEl.value = c.dataset.bet;
+      winEl.value = c.dataset.win;
+      lossEl.value = c.dataset.loss;
       pEl.value = c.dataset.p;
       recompute();
     }));
 
-    [brEl, goalEl, betEl, pEl].forEach(el => el.addEventListener('input', recompute));
+    [brEl, goalEl, winEl, lossEl, pEl].forEach(el => el.addEventListener('input', recompute));
     resetBtn.addEventListener('click', () => {
-      brEl.value = 100; goalEl.value = 200; betEl.value = 10; pEl.value = 50;
+      brEl.value = 100; goalEl.value = 200; winEl.value = 10; lossEl.value = 10; pEl.value = 50;
       recompute();
     });
 
     const pct = x => (x*100).toFixed(2)+'%';
+    const money = x => '$' + Number(x).toLocaleString(undefined,{maximumFractionDigits:2});
     const clamp = (v,min,max)=> Math.max(min, Math.min(max, v));
+    const gcd = (a,b)=>{ a=Math.abs(a); b=Math.abs(b); while(b){ const t=a%b; a=b; b=t; } return a||1; };
+
+    // Root for p*r^u + q*r^{-v} = 1, the nontrivial r != 1
+    function otherRoot(u,v,p){
+      const q = 1 - p;
+      if (p === 0) return Infinity;
+      if (p === 1) return 0;
+
+      // f(r) = p r^u + q r^{-v} - 1; f(1)=0 always. We want the root r!=1.
+      const f = r => p*Math.pow(r,u) + q*Math.pow(r,-v) - 1;
+
+      // Drift sign tells which side the root lies on.
+      const drift = p*u - q*v;
+      const eps = 1e-12;
+
+      // If drift ~ 0 -> r ~ 1
+      if (Math.abs(drift) < 1e-14) return 1;
+
+      // Bisection
+      let a, b;
+      if (drift > 0){
+        // root in (0,1)
+        a = 1e-12; b = 1 - 1e-12;
+        // ensure signs opposite
+        // f(a) > 0 (huge), want f(b) < 0 near 1
+        let fb = f(b);
+        // shrink b if needed
+        for(let k=0;k<60 && fb >= 0;k++){ b = 1 - (1 - b)*2; fb = f(b); }
+      } else {
+        // root in (1, +inf)
+        a = 1 + 1e-12; b = 2;
+        // ensure f(a) < 0 just above 1
+        let fa = f(a);
+        if (fa >= 0){
+          // nudge a until negative
+          for(let k=0;k<60 && fa >= 0;k++){ a = 1 + (a-1)/2; fa = f(a); }
+        }
+        // increase b until positive
+        let fb = f(b);
+        for(let k=0;k<60 && fb <= 0;k++){ b *= 2; fb = f(b); if(b>1e12) break; }
+      }
+
+      // If brackets failed, fall back to r≈1
+      if (!isFinite(a) || !isFinite(b)) return 1;
+
+      // Bisection iterations
+      let lo = a, hi = b, mid = 1;
+      for(let it=0; it<120; it++){
+        mid = (lo + hi)/2;
+        const fm = f(mid);
+        if (Math.abs(fm) < 1e-14) break;
+        // pick side: need to know sign at lo
+        const flo = f(lo);
+        if ((flo <= 0 && fm <= 0) || (flo >= 0 && fm >= 0)) lo = mid; else hi = mid;
+      }
+      return mid;
+    }
+
+    // Probability to hit goal using root method (exact)
+    function goalProb(i,N,u,v,p){
+      const q = 1 - p;
+      if (i <= 0) return 0;
+      if (i >= N) return 1;
+      if (p <= 0) return 0;
+      if (p >= 1) return 1;
+
+      const r = otherRoot(u,v,p);
+      if (!isFinite(r) || Math.abs(r - 1) < 1e-10){
+        // near fair (in this step metric): linear limit
+        return i / N;
+      } else {
+        const r_i = Math.pow(r, i);
+        const r_N = Math.pow(r, N);
+        return (1 - r_i) / (1 - r_N);
+      }
+    }
+
+    // Expected time via Gauss-Seidel when state space is small
+    function expectedTimeGS(N,u,v,p){
+      const q = 1 - p;
+      const E = new Float64Array(N+1);
+      const MAX_IT = 200000;
+      const TOL = 1e-10;
+      for(let it=0; it<MAX_IT; it++){
+        let maxDelta = 0;
+        for(let i=1; i<=N-1; i++){
+          const jp = Math.min(N, i + u);
+          const jm = Math.max(0, i - v);
+          const newEi = 1 + p * E[jp] + q * E[jm];
+          const d = Math.abs(newEi - E[i]);
+          if (d > maxDelta) maxDelta = d;
+          E[i] = newEi;
+        }
+        if (maxDelta < TOL) break;
+        if (it === MAX_IT - 1) return null; // did not converge
+      }
+      return E;
+    }
 
     function recompute(){
-      let bankroll = Math.max(0, Number(brEl.value)||0);
-      let goal = Math.max(0, Number(goalEl.value)||0);
-      let bet = Math.max(1, Number(betEl.value)||1);
-      let p = clamp((Number(pEl.value)||0)/100, 0, 1);
+      const bankroll = Math.max(0, Number(brEl.value)||0);
+      const goal = Math.max(0, Number(goalEl.value)||0);
+      const W = Math.max(0.01, Number(winEl.value)||0.01);
+      const L = Math.max(0.01, Number(lossEl.value)||0.01);
+      const p = clamp((Number(pEl.value)||0)/100, 0, 1);
       const q = 1 - p;
 
-      // Convert to steps: i = floor(bankroll/bet), N = ceil(goal/bet)
-      const i = Math.floor(bankroll / bet);
-      const N = Math.ceil(goal / bet);
+      // cents & gcd reduction
+      let brC = Math.round(bankroll * 100);
+      let goalC = Math.round(goal * 100);
+      let wC = Math.round(W * 100);
+      let lC = Math.round(L * 100);
 
-      // Unit note
-      unitNoteEl.textContent = `Using whole-bet steps: start i = ${i}, goal N = ${N}. (1 step = $${bet}.)`;
-
-      // Edge display
-      const edge = p - q; // = 2p - 1
-      edgeEl.textContent = (edge >= 0 ? '+' : '') + (edge*100).toFixed(2) + '%';
-
-      // Fair check
-      fairEl.textContent = (Math.abs(p - 0.5) < 1e-12) ? 'Fair (p = 50%)' : (p > 0.5 ? 'Player-favored' : 'House-favored');
-
-      // Validate
-      if (bet <= 0 || N <= 0) {
-        pruinEl.textContent = '—'; pgoalEl.textContent = '—'; etimeEl.textContent = '—';
-        stepsEl.textContent = '—';
+      // guard
+      if (goalC <= 0){
+        pruinEl.textContent = '—'; pgoalEl.textContent='—'; etimeEl.textContent='—';
+        stepsEl.textContent='—'; edgeMoneyEl.textContent='—'; driftEl.textContent='—';
+        unitNoteEl.textContent = ''; coarsenNoteEl.textContent='';
         return;
       }
 
-      // Already at/above goal?
-      if (i >= N) {
+      // Unit (gcd of step sizes)
+      const g = gcd(wC, lC);
+      let unit = g; // cents per state step
+      let u = Math.max(1, Math.round(wC / g));
+      let v = Math.max(1, Math.round(lC / g));
+
+      let i = Math.floor(brC / unit);
+      let N = Math.ceil(goalC / unit);
+
+      // Coarsen grid if too large
+      const MAX_STATES = 6000;
+      let coarsened = false;
+      if (N > MAX_STATES){
+        const factor = Math.ceil(N / MAX_STATES);
+        unit *= factor;
+        i = Math.floor(brC / unit);
+        N = Math.ceil(goalC / unit);
+        u = Math.max(1, Math.round(wC / unit));
+        v = Math.max(1, Math.round(lC / unit));
+        coarsened = true;
+      }
+
+      unitNoteEl.textContent = `Grid unit = ${ (unit/100).toFixed(2) } $, start i=${i}, goal N=${N}, up-step u=${u}, down-step v=${v}.`;
+      coarsenNoteEl.innerHTML = coarsened ? `<span class="warn">Large state space — using a coarser grid for speed (probabilities are very close; expected time omitted if unstable).</span>` : '';
+
+      // Simple edges
+      if (i >= N){
         pruinEl.textContent = '0.00%';
         pgoalEl.textContent = '100.00%';
         etimeEl.textContent = '0';
         stepsEl.textContent = `i=${i}, N=${N}`;
-        return;
-      }
-
-      // If you can't afford even one full bet:
-      if (i <= 0) {
+      } else if (i <= 0){
         pruinEl.textContent = '100.00%';
         pgoalEl.textContent = '0.00%';
         etimeEl.textContent = '0';
         stepsEl.textContent = `i=${i}, N=${N}`;
-        return;
-      }
-
-      // Compute p_goal, p_ruin, E[T]
-      let p_goal, p_ruin, E;
-      if (Math.abs(p - 0.5) < 1e-12) {
-        // fair random walk
-        p_goal = i / N;
-        p_ruin = 1 - p_goal;
-        E = i * (N - i);
       } else {
-        const r = q / p;
-        const rN = Math.pow(r, N);
-        const ri = Math.pow(r, i);
+        // Probabilities via root method (exact)
+        const p_goal = goalProb(i,N,u,v,p);
+        const p_ruin = 1 - p_goal;
+        pgoalEl.textContent = pct(p_goal);
+        pruinEl.textContent = pct(p_ruin);
 
-        p_goal = (1 - ri) / (1 - rN);
-        p_goal = clamp(p_goal, 0, 1);
-        p_ruin = 1 - p_goal;
-
-        const denom = (q - p);
-        // E[T] formula
-        E = (i / denom) - (N / denom) * ((1 - ri) / (1 - rN));
-        // Guard for tiny negatives due to floating error
-        if (!isFinite(E) || E < 0) E = 0;
+        // Expected time (try GS if not too big)
+        let showE = true;
+        if (N <= MAX_STATES){
+          const E = expectedTimeGS(N,u,v,p);
+          if (E){
+            etimeEl.textContent = Math.round(E[i]).toLocaleString();
+          } else {
+            etimeEl.textContent = '—';
+            showE = false;
+          }
+        } else {
+          etimeEl.textContent = '—';
+          showE = false;
+        }
+        stepsEl.textContent = `i=${i}, N=${N}${showE?'': ' (E omitted)'}`;
       }
 
-      pruinEl.textContent = pct(p_ruin);
-      pgoalEl.textContent = pct(p_goal);
-      etimeEl.textContent = Math.round(E).toLocaleString();
-      stepsEl.textContent = `i=${i}, N=${N}`;
+      // Edges / drift display
+      const edgeMoney = p*W - q*L;
+      edgeMoneyEl.textContent = (edgeMoney>=0?'+':'') + money(edgeMoney);
+      const driftSteps = p*u - q*v;
+      driftEl.textContent = (driftSteps>=0?'+':'') + driftSteps.toFixed(4);
     }
 
     // Boot
@@ -286,4 +405,3 @@
   </script>
 </body>
 </html>
-
