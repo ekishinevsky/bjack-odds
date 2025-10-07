@@ -4,8 +4,8 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <meta name="color-scheme" content="dark" />
-  <title>Probability Tools — Eli Kishinevsky</title>
-  <meta name="description" content="A set of minimal, useful probability calculators: blackjack odds, dice sums, card draws, parlays, and gambler's ruin." />
+  <title>Probability Tools — Blackjack, Dice, Cards, Parlay, Gambler’s Ruin</title>
+  <meta name="description" content="Clean, minimal probability tools: Blackjack odds, Dice sum odds, Card draw odds, Parlay EV, and Gambler’s Ruin. Click any card to open the tool." />
 
   <!-- GA4 (optional) -->
   <script async src="https://www.googletagmanager.com/gtag/js?id=G-BWPMBYVSD5"></script>
@@ -23,131 +23,110 @@
     }
     *{box-sizing:border-box}
     html,body{margin:0;padding:0;background:var(--bg);color:var(--text);font:16px/1.55 Inter,system-ui,Segoe UI,Roboto,Helvetica,Arial,sans-serif}
-    a{color:var(--accent);text-decoration:none}
+    a{color:inherit;text-decoration:none}
     .container{max-width:1080px;margin:0 auto;padding:22px}
-    .nav{position:sticky;top:0;background:linear-gradient(180deg,#0b0b0f,#0b0b0fd0);backdrop-filter:saturate(130%) blur(6px);border-bottom:1px solid var(--border);z-index:5}
+
+    /* Top nav */
+    .nav{position:sticky;top:0;background:linear-gradient(180deg,#0b0b0f,#0b0b0fd0);backdrop-filter:saturate(130%) blur(6px);border-bottom:1px solid var(--border);z-index:10}
     .nav-inner{display:flex;justify-content:space-between;align-items:center;gap:14px}
-    .brand{display:flex;align-items:center;gap:10px;color:var(--text);font-weight:800;text-decoration:none}
+    .brand{display:flex;align-items:center;gap:10px;color:var(--text);font-weight:800}
     .dot{width:10px;height:10px;border-radius:999px;background:linear-gradient(135deg,var(--accent),#8ea8ff);box-shadow:0 0 14px rgba(91,140,255,.66)}
     nav a{color:var(--muted);margin-left:14px}
-    nav a:hover{color:var(--text)}
-    h1,h2,h3{margin:0 0 8px}
-    .hero{padding:28px 0 10px}
-    .muted{color:var(--muted)}
+    nav a:hover, nav a.active{color:var(--text)}
+
+    /* Hero */
+    .hero{padding:28px 0}
+    .hero h1{margin:0 0 8px;font-size:32px}
+    .hero p{margin:0;color:var(--muted)}
+
+    /* Cards grid */
     .grid{display:grid;gap:14px}
-    @media(min-width:780px){ .grid{grid-template-columns:repeat(3,1fr)} }
-    .card{
-      background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;justify-content:space-between;
-      transition:transform .08s ease, border-color .12s ease;
+    @media(min-width:840px){ .grid{grid-template-columns:repeat(3,1fr)} }
+    @media(min-width:1200px){ .grid{grid-template-columns:repeat(4,1fr)} }
+
+    /* Clickable tool cards */
+    .tool-card{
+      display:block; background:var(--card); border:1px solid var(--border); border-radius:var(--radius);
+      padding:16px; transition:border-color .15s, transform .06s, box-shadow .15s; cursor:pointer;
     }
-    .card:hover{transform:translateY(-1px);border-color:var(--accent)}
-    .card h3{margin-bottom:6px}
-    .card p{margin:0 0 12px}
-    .pill{
-      display:inline-flex;align-items:center;gap:8px;padding:8px 10px;border:1px solid var(--border);border-radius:999px;background:#101015;
-      width:max-content
-    }
-    .go{
-      display:inline-flex;align-items:center;gap:8px;border:1px solid var(--border);border-radius:10px;padding:8px 10px;background:#101015
-    }
-    .go svg{width:16px;height:16px}
-    footer{border-top:1px solid var(--border);margin-top:24px}
+    .tool-card:hover{ border-color:var(--accent); transform:translateY(-2px); box-shadow:0 6px 22px rgba(91,140,255,.12) }
+    .tool-card h3{margin:0 0 6px; font-size:18px}
+    .tool-card p{margin:0; color:var(--muted); font-size:14px}
+    .tags{margin-top:10px; display:flex; flex-wrap:wrap; gap:6px}
+    .tag{font-size:12px;color:#c9cbcf;background:#0e0e14;border:1px solid var(--border);border-radius:999px;padding:4px 8px}
+
+    .section{padding:10px 0 30px}
+    footer{border-top:1px solid var(--border)}
+    .muted{color:var(--muted)}
   </style>
 </head>
 <body>
   <!-- NAV -->
   <div class="nav">
     <div class="container nav-inner">
-      <a class="brand" href="#"><span class="dot"></span><span>Probability Tools</span></a>
+      <a class="brand" href="index.html"><span class="dot"></span><span>Probability Tools</span></a>
       <nav>
-        <a href="https://ekishinevsky.github.io/" target="_blank" rel="noopener">Main Site</a>
+        <a href="blackjack.html">Blackjack</a>
+        <a href="dice-sum-odds.html">Dice</a>
+        <a href="card-draw-odds.html">Card Draw</a>
+        <a href="parlay-ev.html">Parlay</a>
+        <a href="gamblers-ruin.html">Gambler’s Ruin</a>
       </nav>
     </div>
   </div>
 
+  <!-- HERO -->
   <section class="hero">
     <div class="container">
-      <h1>Probability Tools</h1>
-      <p class="muted">Minimal, fast, and practical calculators for cards, dice, and decision-making.</p>
+      <h1>Pick a tool</h1>
+      <p>Click any card to open it.</p>
     </div>
   </section>
 
-  <section>
-    <div class="container grid">
-      <!-- Blackjack Odds -->
-      <article class="card">
-        <div>
+  <!-- TOOLS GRID (cards are full clickable links; no inner blue buttons) -->
+  <section class="section">
+    <div class="container">
+      <div class="grid">
+        <a class="tool-card" href="blackjack.html">
           <h3>Blackjack Odds</h3>
-          <p>Click your hand + seen cards to get <strong>bust chance on next hit</strong> and per-card draw odds.</p>
-          <span class="pill">Cards • Next-card odds</span>
-        </div>
-        <a class="go" href="blackjack.html">
-          Open
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 3h7v7"></path><path d="M10 14L21 3"></path><path d="M21 14v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"></path>
-          </svg>
+          <p>Build your hand & seen cards to see bust chance on hit and next-card outcomes.</p>
+          <div class="tags">
+            <span class="tag">Bust %</span><span class="tag">Next card odds</span><span class="tag">Deck live</span>
+          </div>
         </a>
-      </article>
 
-      <!-- Dice Sum Odds -->
-      <article class="card">
-        <div>
+        <a class="tool-card" href="dice-sum-odds.html">
           <h3>Dice Sum Odds</h3>
-          <p>Pick dice & sides. See the <strong>distribution of sums</strong> and P(sum ≥ k) instantly.</p>
-          <span class="pill">Convolution • Exact</span>
-        </div>
-        <a class="go" href="dice-sum-odds.html">
-          Open
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 3h7v7"></path><path d="M10 14L21 3"></path><path d="M21 14v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"></path>
-          </svg>
+          <p>Exact distribution by #dice and sides. Highlight ≥k or =k; see tail probabilities.</p>
+          <div class="tags">
+            <span class="tag">Exact</span><span class="tag">Tail %</span><span class="tag">Modes</span>
+          </div>
         </a>
-      </article>
 
-      <!-- Card Draw Odds (Hypergeometric) -->
-      <article class="card">
-        <div>
+        <a class="tool-card" href="card-draw-odds.html">
           <h3>Card Draw Odds</h3>
-          <p>Hypergeometric: from a deck with K target cards, what's P(get ≥ x) in n draws?</p>
-          <span class="pill">Hypergeometric • Exact</span>
-        </div>
-        <a class="go" href="card-draw-odds.html">
-          Open
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 3h7v7"></path><path d="M10 14L21 3"></path><path d="M21 14v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"></path>
-          </svg>
+          <p>From N with K targets, drawing n without replacement — chance of ≥x (or exactly x).</p>
+          <div class="tags">
+            <span class="tag">Hypergeometric</span><span class="tag">Clear sentence</span>
+          </div>
         </a>
-      </article>
 
-      <!-- Parlay / Accumulator EV -->
-      <article class="card">
-        <div>
+        <a class="tool-card" href="parlay-ev.html">
           <h3>Parlay / Accumulator EV</h3>
-          <p>Enter leg probabilities or odds to see <strong>payout & expected value</strong> of the parlay.</p>
-          <span class="pill">EV • Risk of bust</span>
-        </div>
-        <a class="go" href="parlay-ev.html">
-          Open
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 3h7v7"></path><path d="M10 14L21 3"></path><path d="M21 14v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"></path>
-          </svg>
+          <p>Enter legs by % or American odds. See win chance, payout, EV, and break-even.</p>
+          <div class="tags">
+            <span class="tag">EV</span><span class="tag">Break-even</span><span class="tag">Odds ⇄ %</span>
+          </div>
         </a>
-      </article>
 
-      <!-- Gambler's Ruin -->
-      <article class="card">
-        <div>
+        <a class="tool-card" href="gamblers-ruin.html">
           <h3>Gambler’s Ruin</h3>
-          <p>Given win prob, bankroll, bet size & goal, compute <strong>P(ruin)</strong> and expected hands.</p>
-          <span class="pill">Ruin probability</span>
-        </div>
-        <a class="go" href="gamblers-ruin.html">
-          Open
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-            <path d="M14 3h7v7"></path><path d="M10 14L21 3"></path><path d="M21 14v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h6"></path>
-          </svg>
+          <p>Ruin vs goal with adjustable win/loss per bet and win %. Exact probability & ET.</p>
+          <div class="tags">
+            <span class="tag">Risk–reward</span><span class="tag">Exact</span>
+          </div>
         </a>
-      </article>
+      </div>
     </div>
   </section>
 
@@ -158,7 +137,15 @@
   </footer>
 
   <script>
-    document.getElementById('year').textContent=new Date().getFullYear();
+    document.getElementById('year').textContent = new Date().getFullYear();
+
+    // Highlight active nav link if you're on a tool page (works when this header is reused)
+    (function(){
+      const file = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+      document.querySelectorAll('nav a').forEach(a=>{
+        if(a.getAttribute('href').toLowerCase() === file){ a.classList.add('active'); }
+      });
+    })();
   </script>
 </body>
 </html>
